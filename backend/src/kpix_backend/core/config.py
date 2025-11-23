@@ -6,9 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "kpix-backend"
+    app_name: str = "kpil-backend"
     environment: Literal["dev", "test", "prod"] = "dev"
-    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/kpix"
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/kpil"
 
     jwt_secret_key: str = "change-me"
     jwt_algorithm: str = "HS256"

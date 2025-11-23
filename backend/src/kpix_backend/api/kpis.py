@@ -3,7 +3,7 @@ from datetime import date
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +36,57 @@ async def list_kpis(
     dashboard = await get_dashboard_or_404(session, dashboard_id, current_user.organization_id)
     result = await session.execute(select(Kpi).where(Kpi.dashboard_id == dashboard.id))
     kpis = result.scalars().all()
-    return [KpiPublic.model_validate(k) for k in kpis]
+    if not kpis:
+        return []
+
+    latest_values_subquery = (
+        select(
+            KpiValue.kpi_id,
+            KpiValue.value,
+            KpiValue.status,
+            KpiValue.period_end,
+            func.row_number()
+            .over(order_by=(KpiValue.period_end.desc(), KpiValue.created_at.desc()), partition_by=KpiValue.kpi_id)
+            .label("rn"),
+        )
+        .where(
+            KpiValue.kpi_id.in_([k.id for k in kpis]),
+            KpiValue.organization_id == dashboard.organization_id,
+        )
+        .subquery()
+    )
+
+    latest_values_rows = (
+        await session.execute(
+            select(
+                latest_values_subquery.c.kpi_id,
+                latest_values_subquery.c.value,
+                latest_values_subquery.c.status,
+                latest_values_subquery.c.period_end,
+            ).where(latest_values_subquery.c.rn == 1)
+        )
+    ).all()
+
+    latest_by_kpi: dict[uuid.UUID, tuple[float | None, KpiValueStatus, date | None]] = {}
+    for kpi_id, value, status, period_end in latest_values_rows:
+        latest_by_kpi[kpi_id] = (
+            float(value) if value is not None else None,
+            KpiValueStatus(status),
+            period_end,
+        )
+
+    result_payload: list[KpiPublic] = []
+    for kpi in kpis:
+        kpi_public = KpiPublic.model_validate(kpi)
+        latest = latest_by_kpi.get(kpi.id)
+        if latest:
+            latest_value, latest_status, latest_period_end = latest
+            kpi_public.latest_value = latest_value
+            kpi_public.latest_status = latest_status
+            kpi_public.latest_period_end = latest_period_end
+        result_payload.append(kpi_public)
+
+    return result_payload
 
 
 @router.post("/dashboards/{dashboard_id}/kpis", response_model=KpiPublic, status_code=status.HTTP_201_CREATED)

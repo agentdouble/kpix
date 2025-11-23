@@ -1,4 +1,4 @@
-import type { Kpi, KpiDirection, KpiFrequency } from '../types';
+import type { Kpi, KpiDirection, KpiFrequency, KpiStatus } from '../types';
 import { USE_DEMO_DATA, request } from './client';
 import { demoKpis } from './demoData';
 
@@ -17,6 +17,9 @@ type ApiKpi = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  latest_value?: number | null;
+  latest_status?: KpiStatus | null;
+  latest_period_end?: string | null;
 };
 
 const mapKpi = (payload: ApiKpi): Kpi => ({
@@ -34,6 +37,9 @@ const mapKpi = (payload: ApiKpi): Kpi => ({
   isActive: payload.is_active,
   createdAt: payload.created_at,
   updatedAt: payload.updated_at,
+  latestValue: payload.latest_value ?? null,
+  latestStatus: payload.latest_status ?? null,
+  latestPeriodEnd: payload.latest_period_end ?? null,
 });
 
 export const kpisApi = {

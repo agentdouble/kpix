@@ -57,6 +57,9 @@ export type Kpi = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+   latestValue?: number | null;
+   latestStatus?: KpiStatus | null;
+   latestPeriodEnd?: string | null;
 };
 
 export type KpiValue = {

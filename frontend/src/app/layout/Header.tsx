@@ -24,7 +24,7 @@ const Header = () => {
         role="button"
         tabIndex={0}
       >
-        kpix
+        kpil
       </div>
       <nav className="app-nav">
         {navItems.map((item) => (
