@@ -11,15 +11,15 @@ Contraintes :
 
 ## 1. Stack technique frontend
 
-- Framework : React (ou équivalent) – mais le MVP peut démarrer en React + Vite pour simplicité.
-- Langage : TypeScript recommandé pour robustesse, mais possibilité de démarrer en JavaScript si besoin d’aller plus vite (idéalement TS).
+- Framework : React  – mais le MVP peut démarrer en React + Vite pour simplicité.
+- Langage : TypeScript recommandé pour robustesse
 - Gestion d’état :
   - MVP : React Query (pour data-fetching) + état local simple pour l’UI.
   - Pas de complexité Redux tant que ce n’est pas nécessaire.
 - Routing : React Router ou équivalent.
 - HTTP client : `fetch` natif + wrappers pour gérer auth/token.
 - Styling :
-  - CSS minimal (ou CSS-in-JS léger) avec une palette noir / blanc / gris.
+  - CSS minimal (ou CSS-in-JS léger) avec une palette noir / blanc
   - Système de design simple : variables CSS pour couleurs, tailles, espacements.
 - Build : Vite (rapide, standard).
 - Auth :
