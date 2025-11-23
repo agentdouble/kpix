@@ -75,7 +75,7 @@ const KpiDetailPage = () => {
   const [valueForm, setValueForm] = useState({ periodStart: '', value: '', comment: '' });
   const [actionForm, setActionForm] = useState({ title: '', description: '', dueDate: '' });
   const [commentForm, setCommentForm] = useState({ message: '' });
-  const [activeEditorTab, setActiveEditorTab] = useState<'value' | 'action' | 'comment'>('value');
+  const [activeTab, setActiveTab] = useState<'value' | 'action' | 'comment'>('value');
 
   const addValueMutation = useMutation({
     mutationFn: () =>
@@ -210,237 +210,247 @@ const KpiDetailPage = () => {
         )}
       </Card>
 
-      <div className="grid two-columns" style={{ gap: '20px' }}>
-        <Card title="Historique des valeurs">
-          {valuesQuery.isLoading && <p className="muted">Chargement...</p>}
-          {values.length === 0 && !valuesQuery.isLoading && <p>Aucune valeur enregistrée.</p>}
-          {values.length > 0 && (
-            <Table headers={["Période", "Valeur", "Commentaire"]}>
-              {values.map((value) => (
-                <tr key={value.id}>
-                  <td>{formatPeriod(value)}</td>
-                  <td style={{ color: statusColor(value.status), fontWeight: 600 }}>
-                    {value.value} {kpi.unit}
-                  </td>
-                  <td>{value.comment ?? '-'}</td>
-                </tr>
-              ))}
-            </Table>
-          )}
-        </Card>
+      <div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+          <button
+            type="button"
+            className="pill"
+            style={{
+              cursor: 'pointer',
+              background: activeTab === 'value' ? '#000000' : '#ffffff',
+              color: activeTab === 'value' ? '#ffffff' : 'var(--text-primary)',
+              borderColor: activeTab === 'value' ? '#000000' : 'var(--border)',
+            }}
+            onClick={() => setActiveTab('value')}
+          >
+            Valeurs
+          </button>
+          <button
+            type="button"
+            className="pill"
+            style={{
+              cursor: 'pointer',
+              background: activeTab === 'action' ? '#000000' : '#ffffff',
+              color: activeTab === 'action' ? '#ffffff' : 'var(--text-primary)',
+              borderColor: activeTab === 'action' ? '#000000' : 'var(--border)',
+            }}
+            onClick={() => setActiveTab('action')}
+          >
+            Actions
+          </button>
+          <button
+            type="button"
+            className="pill"
+            style={{
+              cursor: 'pointer',
+              background: activeTab === 'comment' ? '#000000' : '#ffffff',
+              color: activeTab === 'comment' ? '#ffffff' : 'var(--text-primary)',
+              borderColor: activeTab === 'comment' ? '#000000' : 'var(--border)',
+            }}
+            onClick={() => setActiveTab('comment')}
+          >
+            Commentaires
+          </button>
+        </div>
 
-        <Card title="Ajouter une information">
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-            <button
-              type="button"
-              className="pill"
-              style={{
-                cursor: 'pointer',
-                background: activeEditorTab === 'value' ? '#000000' : '#ffffff',
-                color: activeEditorTab === 'value' ? '#ffffff' : 'var(--text-primary)',
-                borderColor: activeEditorTab === 'value' ? '#000000' : 'var(--border)',
-              }}
-              onClick={() => setActiveEditorTab('value')}
-            >
-              Valeur
-            </button>
-            <button
-              type="button"
-              className="pill"
-              style={{
-                cursor: 'pointer',
-                background: activeEditorTab === 'action' ? '#000000' : '#ffffff',
-                color: activeEditorTab === 'action' ? '#ffffff' : 'var(--text-primary)',
-                borderColor: activeEditorTab === 'action' ? '#000000' : 'var(--border)',
-              }}
-              onClick={() => setActiveEditorTab('action')}
-            >
-              Action
-            </button>
-            <button
-              type="button"
-              className="pill"
-              style={{
-                cursor: 'pointer',
-                background: activeEditorTab === 'comment' ? '#000000' : '#ffffff',
-                color: activeEditorTab === 'comment' ? '#ffffff' : 'var(--text-primary)',
-                borderColor: activeEditorTab === 'comment' ? '#000000' : 'var(--border)',
-              }}
-              onClick={() => setActiveEditorTab('comment')}
-            >
-              Commentaire
-            </button>
-          </div>
-
-          {activeEditorTab === 'value' && (
-            <form
-              className="grid"
-              style={{ gap: '12px' }}
-              onSubmit={(e: FormEvent) => {
-                e.preventDefault();
-                addValueMutation.mutate();
-              }}
-            >
-              <div className="field">
-                <label htmlFor="period-start">Date</label>
-                <input
-                  id="period-start"
-                  type="date"
-                  value={valueForm.periodStart}
-                  onChange={(e) => setValueForm((prev) => ({ ...prev, periodStart: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="value">Valeur</label>
-                <input
-                  id="value"
-                  type="number"
-                  step="any"
-                  value={valueForm.value}
-                  onChange={(e) => setValueForm((prev) => ({ ...prev, value: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="comment">Commentaire</label>
-                <textarea
-                  id="comment"
-                  value={valueForm.comment}
-                  onChange={(e) => setValueForm((prev) => ({ ...prev, comment: e.target.value }))}
-                  placeholder="Note facultative"
-                />
-              </div>
-              <Button type="submit" disabled={addValueMutation.isPending}>
-                {addValueMutation.isPending ? 'Ajout...' : 'Ajouter la valeur'}
-              </Button>
-              {addValueMutation.isError && <p className="error-text">Impossible d'enregistrer la valeur.</p>}
-            </form>
-          )}
-
-          {activeEditorTab === 'action' && (
-            <form
-              className="grid"
-              style={{ gap: '12px' }}
-              onSubmit={(e: FormEvent) => {
-                e.preventDefault();
-                addActionMutation.mutate();
-              }}
-            >
-              <div className="field">
-                <label htmlFor="action-title">Titre</label>
-                <input
-                  id="action-title"
-                  value={actionForm.title}
-                  onChange={(e) => setActionForm((prev) => ({ ...prev, title: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="action-description">Description</label>
-                <textarea
-                  id="action-description"
-                  value={actionForm.description}
-                  onChange={(e) => setActionForm((prev) => ({ ...prev, description: e.target.value }))}
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="action-due">Échéance</label>
-                <input
-                  id="action-due"
-                  type="date"
-                  value={actionForm.dueDate}
-                  onChange={(e) => setActionForm((prev) => ({ ...prev, dueDate: e.target.value }))}
-                />
-              </div>
-              <Button type="submit" disabled={addActionMutation.isPending}>
-                {addActionMutation.isPending ? 'Ajout...' : 'Créer une action'}
-              </Button>
-              {addActionMutation.isError && <p className="error-text">Impossible de créer l'action.</p>}
-            </form>
-          )}
-
-          {activeEditorTab === 'comment' && (
-            <form
-              className="grid"
-              style={{ gap: '12px' }}
-              onSubmit={(e: FormEvent) => {
-                e.preventDefault();
-                addCommentMutation.mutate();
-              }}
-            >
-              {user && (
-                <div className="muted">
-                  Posté en tant que <strong>{user.fullName}</strong>
-                </div>
+        {activeTab === 'value' && (
+          <div className="grid two-columns" style={{ gap: '20px' }}>
+            <Card title="Historique des valeurs">
+              {valuesQuery.isLoading && <p className="muted">Chargement...</p>}
+              {values.length === 0 && !valuesQuery.isLoading && <p>Aucune valeur enregistrée.</p>}
+              {values.length > 0 && (
+                <Table headers={["Période", "Valeur", "Commentaire"]}>
+                  {values.map((value) => (
+                    <tr key={value.id}>
+                      <td>{formatPeriod(value)}</td>
+                      <td style={{ color: statusColor(value.status), fontWeight: 600 }}>
+                        {value.value} {kpi.unit}
+                      </td>
+                      <td>{value.comment ?? '-'}</td>
+                    </tr>
+                  ))}
+                </Table>
               )}
-              <div className="field">
-                <label htmlFor="comment-message">Message</label>
-                <textarea
-                  id="comment-message"
-                  value={commentForm.message}
-                  onChange={(e) => setCommentForm((prev) => ({ ...prev, message: e.target.value }))}
-                  required
-                />
-              </div>
-              <Button type="submit" disabled={addCommentMutation.isPending}>
-                {addCommentMutation.isPending ? 'Ajout...' : 'Ajouter un commentaire'}
-              </Button>
-              {addCommentMutation.isError && <p className="error-text">Impossible d'ajouter le commentaire.</p>}
-            </form>
-          )}
-        </Card>
-      </div>
+            </Card>
 
-      <div className="grid two-columns" style={{ gap: '20px' }}>
-        <Card title="Plans d'action">
-          {actionsQuery.isLoading && <p className="muted">Chargement...</p>}
-          {actionsQuery.data?.length === 0 && !actionsQuery.isLoading && <p>Aucune action.</p>}
-          {actionsQuery.data?.length ? (
-            <ul className="grid" style={{ gap: '12px' }}>
-              {actionsQuery.data.map((action: ActionItem) => (
-                <li
-                  key={action.id}
-                  style={{
-                    border: '1px solid var(--border)',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    background: '#fff',
-                  }}
-                >
-                  <div className="section-title" style={{ marginBottom: '6px' }}>
-                    <strong>{action.title}</strong>
-                    <span className="pill">
-                      {action.progress}% · {actionStatusLabel[action.status]}
-                    </span>
-                  </div>
-                  {action.description && <p className="muted">{action.description}</p>}
-                  {action.dueDate && <p className="muted">Échéance : {action.dueDate}</p>}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </Card>
+            <Card title="Ajouter une valeur">
+              <form
+                className="grid"
+                style={{ gap: '12px' }}
+                onSubmit={(e: FormEvent) => {
+                  e.preventDefault();
+                  addValueMutation.mutate();
+                }}
+              >
+                <div className="field">
+                  <label htmlFor="period-start">Date</label>
+                  <input
+                    id="period-start"
+                    type="date"
+                    value={valueForm.periodStart}
+                    onChange={(e) => setValueForm((prev) => ({ ...prev, periodStart: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="value">Valeur</label>
+                  <input
+                    id="value"
+                    type="number"
+                    step="any"
+                    value={valueForm.value}
+                    onChange={(e) => setValueForm((prev) => ({ ...prev, value: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="comment">Commentaire</label>
+                  <textarea
+                    id="comment"
+                    value={valueForm.comment}
+                    onChange={(e) => setValueForm((prev) => ({ ...prev, comment: e.target.value }))}
+                    placeholder="Note facultative"
+                  />
+                </div>
+                <Button type="submit" disabled={addValueMutation.isPending}>
+                  {addValueMutation.isPending ? 'Ajout...' : 'Ajouter la valeur'}
+                </Button>
+                {addValueMutation.isError && <p className="error-text">Impossible d'enregistrer la valeur.</p>}
+              </form>
+            </Card>
+          </div>
+        )}
 
-        <Card title="Commentaires">
-          {commentsQuery.isLoading && <p className="muted">Chargement...</p>}
-          {commentsQuery.data?.length === 0 && !commentsQuery.isLoading && <p>Aucun commentaire.</p>}
-          {commentsQuery.data?.length ? (
-            <ul className="grid" style={{ gap: '10px' }}>
-              {commentsQuery.data.map((comment: Comment) => (
-                <li key={comment.id} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
-                  <div className="section-title" style={{ marginBottom: '4px' }}>
-                    <strong>{comment.authorId ? `Auteur ${comment.authorId.slice(0, 8)}` : 'Auteur inconnu'}</strong>
-                    <span className="muted" style={{ fontSize: '13px' }}>
-                      {new Date(comment.createdAt).toLocaleString('fr-FR')}
-                    </span>
+        {activeTab === 'action' && (
+          <div className="grid two-columns" style={{ gap: '20px' }}>
+            <Card title="Plans d'action">
+              {actionsQuery.isLoading && <p className="muted">Chargement...</p>}
+              {actionsQuery.data?.length === 0 && !actionsQuery.isLoading && <p>Aucune action.</p>}
+              {actionsQuery.data?.length ? (
+                <ul className="grid" style={{ gap: '12px' }}>
+                  {actionsQuery.data.map((action: ActionItem) => (
+                    <li
+                      key={action.id}
+                      style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        background: '#fff',
+                      }}
+                    >
+                      <div className="section-title" style={{ marginBottom: '6px' }}>
+                        <strong>{action.title}</strong>
+                        <span className="pill">
+                          {action.progress}% · {actionStatusLabel[action.status]}
+                        </span>
+                      </div>
+                      {action.description && <p className="muted">{action.description}</p>}
+                      {action.dueDate && <p className="muted">Échéance : {action.dueDate}</p>}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </Card>
+
+            <Card title="Ajouter une action">
+              <form
+                className="grid"
+                style={{ gap: '12px' }}
+                onSubmit={(e: FormEvent) => {
+                  e.preventDefault();
+                  addActionMutation.mutate();
+                }}
+              >
+                <div className="field">
+                  <label htmlFor="action-title">Titre</label>
+                  <input
+                    id="action-title"
+                    value={actionForm.title}
+                    onChange={(e) => setActionForm((prev) => ({ ...prev, title: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="action-description">Description</label>
+                  <textarea
+                    id="action-description"
+                    value={actionForm.description}
+                    onChange={(e) => setActionForm((prev) => ({ ...prev, description: e.target.value }))}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="action-due">Échéance</label>
+                  <input
+                    id="action-due"
+                    type="date"
+                    value={actionForm.dueDate}
+                    onChange={(e) => setActionForm((prev) => ({ ...prev, dueDate: e.target.value }))}
+                  />
+                </div>
+                <Button type="submit" disabled={addActionMutation.isPending}>
+                  {addActionMutation.isPending ? 'Ajout...' : 'Créer une action'}
+                </Button>
+                {addActionMutation.isError && <p className="error-text">Impossible de créer l'action.</p>}
+              </form>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === 'comment' && (
+          <div className="grid two-columns" style={{ gap: '20px' }}>
+            <Card title="Commentaires">
+              {commentsQuery.isLoading && <p className="muted">Chargement...</p>}
+              {commentsQuery.data?.length === 0 && !commentsQuery.isLoading && <p>Aucun commentaire.</p>}
+              {commentsQuery.data?.length ? (
+                <ul className="grid" style={{ gap: '10px' }}>
+                  {commentsQuery.data.map((comment: Comment) => (
+                    <li key={comment.id} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
+                      <div className="section-title" style={{ marginBottom: '4px' }}>
+                        <strong>
+                          {comment.authorId ? `Auteur ${comment.authorId.slice(0, 8)}` : 'Auteur inconnu'}
+                        </strong>
+                        <span className="muted" style={{ fontSize: '13px' }}>
+                          {new Date(comment.createdAt).toLocaleString('fr-FR')}
+                        </span>
+                      </div>
+                      <p>{comment.content}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </Card>
+
+            <Card title="Ajouter un commentaire">
+              <form
+                className="grid"
+                style={{ gap: '12px' }}
+                onSubmit={(e: FormEvent) => {
+                  e.preventDefault();
+                  addCommentMutation.mutate();
+                }}
+              >
+                {user && (
+                  <div className="muted">
+                    Posté en tant que <strong>{user.fullName}</strong>
                   </div>
-                  <p>{comment.content}</p>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </Card>
+                )}
+                <div className="field">
+                  <label htmlFor="comment-message">Message</label>
+                  <textarea
+                    id="comment-message"
+                    value={commentForm.message}
+                    onChange={(e) => setCommentForm((prev) => ({ ...prev, message: e.target.value }))}
+                    required
+                  />
+                </div>
+                <Button type="submit" disabled={addCommentMutation.isPending}>
+                  {addCommentMutation.isPending ? 'Ajout...' : 'Ajouter un commentaire'}
+                </Button>
+                {addCommentMutation.isError && <p className="error-text">Impossible d'ajouter le commentaire.</p>}
+              </form>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
