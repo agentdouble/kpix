@@ -214,15 +214,12 @@ const KpiDetailPage = () => {
           {valuesQuery.isLoading && <p className="muted">Chargement...</p>}
           {values.length === 0 && !valuesQuery.isLoading && <p>Aucune valeur enregistrée.</p>}
           {values.length > 0 && (
-            <Table headers={["Période", "Valeur", "Statut", "Commentaire"]}>
+            <Table headers={["Période", "Valeur", "Commentaire"]}>
               {values.map((value) => (
                 <tr key={value.id}>
                   <td>{formatPeriod(value)}</td>
-                  <td>
+                  <td style={{ color: statusColor(value.status), fontWeight: 600 }}>
                     {value.value} {kpi.unit}
-                  </td>
-                  <td>
-                    <BadgeStatus status={value.status} />
                   </td>
                   <td>{value.comment ?? '-'}</td>
                 </tr>
