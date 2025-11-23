@@ -1,19 +1,37 @@
 # kpix
 
-Initial repository setup for the kpix project. The codebase is organized into `backend/` and `frontend/` directories.
+Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (React + Vite, noir & blanc).
 
-## Backend
-- See `backend/planbackend.md` for the technical plan of the performance management backend (PostgreSQL, APIs, domains).
+## Backend (FastAPI)
+- Code and tooling live in `backend/`. Stack: FastAPI, async SQLAlchemy, Alembic, JWT auth, PostgreSQL.
+- Plan: `backend/planbackend.md`.
+- Quickstart:
+  1. `cd backend`
+  2. Crée un `.env` :
+     ```
+     DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpix
+     JWT_SECRET_KEY=change-me
+     ACCESS_TOKEN_EXPIRES_MINUTES=30
+     REFRESH_TOKEN_EXPIRES_MINUTES=10080
+     LOG_LEVEL=INFO
+     LLM_MODE=api  # ou local pour un runtime vLLM
+     ```
+  3. Installer les deps : `uv sync`
+  4. Migrations : `uv run alembic upgrade head`
+  5. Démarrer l’API : `uv run uvicorn kpix_backend.main:app --reload --host 0.0.0.0 --port 8000`
+  6. Docs : `/api/docs` quand le serveur tourne.
+- Tests backend : `cd backend && uv run --extra dev pytest`
 
-## Frontend
-- Tech stack: React + TypeScript + Vite, design noir & blanc, pages Login / Dashboards / KPI détail / Overview / Imports.
-- Quick start (depuis `frontend/`) :
+## Frontend (React + Vite)
+- Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Dashboards / KPI détail / Overview / Imports.
+- Plan : `frontend/planfrontend.md`.
+- Quickstart (depuis `frontend/`) :
   - `npm install`
   - `VITE_USE_DEMO_DATA=true npm run dev` pour le mode démo sans backend
   - ou définir `VITE_API_BASE_URL` puis `npm run dev` pour utiliser l’API
-- Documentation détaillée : `frontend/README.md` et le plan `frontend/planfrontend.md`.
+- Docs : `frontend/README.md`.
 
 ## Development notes
-- Follow the guidelines in `AGENTS.md` for contributions and environment expectations.
-- Use `uv` for Python package management for any Python backend code.
-- Maintain separate local (vLLM) and API (external provider) modes for LLM usage if/when LLM features are introduced.
+- Suivre `AGENTS.md` pour les règles de contribution.
+- Gestion Python via uv (pas de pip/venv).
+- Les features LLM doivent supporter les modes `local` (vLLM) et `api` (provider externe).
