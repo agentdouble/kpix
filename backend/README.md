@@ -27,6 +27,11 @@ BACKEND_PORT=8000  # utilisé par ./start.sh pour choisir le port uvicorn
 ## Testing
 - Unit tests: `uv run --extra dev pytest`
 
+## Reporting / vue Direction
+- `GET /api/v1/reporting/overview` : synthèse par tableau de bord (KPIs, actions ouvertes/en retard).
+- `GET /api/v1/reporting/top-risks` : KPIs en rouge/orange.
+- `GET /api/v1/reporting/direction` : vue Direction (top KPIs rouges, tendances, actions en retard, actions proches de l’échéance, actions clôturées récemment).
+
 ## Import format
 `POST /api/v1/imports/kpi-values` accepts CSV or Excel with columns:
 `kpi_id`, `period_start` (YYYY-MM-DD), optional `period_end`, `value`, optional `comment`.

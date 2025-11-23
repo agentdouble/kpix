@@ -105,3 +105,51 @@ export type ImportJob = {
   updatedAt: string;
   errorMessage?: string | null;
 };
+
+export type DirectionKpiSnapshot = {
+  kpiId: string;
+  dashboardId: string;
+  dashboardTitle: string;
+  name: string;
+  status: KpiStatus | null;
+  value: number | null;
+  periodEnd: string | null;
+};
+
+export type DirectionKpiTrend = {
+  kpiId: string;
+  dashboardId: string;
+  dashboardTitle: string;
+  name: string;
+  direction: KpiDirection;
+  currentValue: number | null;
+  previousValue: number | null;
+  currentStatus: KpiStatus | null;
+  previousStatus: KpiStatus | null;
+  delta: number | null;
+  deltaNormalized: number | null;
+};
+
+export type DirectionActionSummary = {
+  actionId: string;
+  kpiId: string;
+  kpiName: string;
+  dashboardId: string;
+  dashboardTitle: string;
+  title: string;
+  status: ActionStatus;
+  dueDate: string | null;
+  updatedAt: string;
+};
+
+export type DirectionOverview = {
+  topRedKpis: DirectionKpiSnapshot[];
+  overdueActions: DirectionActionSummary[];
+  latestValues: DirectionKpiSnapshot[];
+  improvingKpis: DirectionKpiTrend[];
+  worseningKpis: DirectionKpiTrend[];
+  upcomingActions48h: DirectionActionSummary[];
+  upcomingActions7d: DirectionActionSummary[];
+  strategicKpis: DirectionKpiSnapshot[];
+  closedActionsThisWeek: DirectionActionSummary[];
+};

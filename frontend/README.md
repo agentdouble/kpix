@@ -2,9 +2,10 @@
 
 Frontend React/TypeScript (Vite) pour le pilotage de performance en noir & blanc. Les pages principales :
 - Login
-- Liste des tableaux de bord et détail (KPIs)
+- Tableaux de bord :
+  - onglet Liste (création + synthèse par tableau),
+  - onglet Direction (TOP KPIs en rouge, tendances, actions en retard / à échéance proche, actions clôturées, KPIs stratégiques).
 - Détail KPI (historique, plans d’action, commentaires)
-- Synthèse direction intégrée à la liste des tableaux de bord
 - Imports (fichiers CSV/Excel)
 
 ## Prérequis
