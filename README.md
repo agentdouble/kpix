@@ -3,8 +3,9 @@
 Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (React + Vite, noir & blanc).
 
 ## Start everything
-- `./script.sh` lance PostgreSQL (docker, port 5433), applique les migrations, démarre l’API sur 8000 et le frontend sur 5173.
-- Variables ajustables : `BACKEND_PORT`, `FRONTEND_PORT`, `DB_PORT`, `DATABASE_URL`, `VITE_API_BASE_URL` (défaut `http://localhost:8000/api/v1`), `SKIP_DB_BOOT=1` si une base existe déjà.
+- Assurez-vous qu’un PostgreSQL est accessible (ex: `postgresql://postgres:postgres@localhost:5432/kpix`).
+- `./start.sh` applique les migrations, démarre l’API sur 8000 et le frontend sur 5173.
+- Variables ajustables : `BACKEND_PORT`, `FRONTEND_PORT`, `DATABASE_URL`, `VITE_API_BASE_URL` (défaut `http://localhost:8000/api/v1`), `LLM_MODE` (`api` ou `local`).
 - API docs : `http://localhost:8000/api/docs`. Frontend : `http://localhost:5173`.
 - Créez un premier compte admin après le démarrage :  
   `curl -X POST http://localhost:8000/api/v1/auth/signup -H "Content-Type: application/json" -d '{"email":"admin@kpix.test","password":"changeme123","full_name":"Admin","organization_name":"Kpix"}'`
