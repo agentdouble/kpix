@@ -477,7 +477,9 @@ const KpiDetailPage = () => {
                       <div className="section-title" style={{ marginBottom: '6px' }}>
                         <strong>{action.title}</strong>
                         <span className="pill">
-                          {action.progress}% · {actionStatusLabel[action.status]}
+                          {action.status === 'DONE'
+                            ? actionStatusLabel[action.status]
+                            : `${action.progress}% · ${actionStatusLabel[action.status]}`}
                         </span>
                       </div>
                       {(() => {
