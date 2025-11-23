@@ -191,6 +191,11 @@ const KpiDetailPage = () => {
   const [showThresholds, setShowThresholds] = useState(false);
   const [showActionDeadlines, setShowActionDeadlines] = useState(false);
   const [showCommentsOnChart, setShowCommentsOnChart] = useState(false);
+  const [chartSelection, setChartSelection] = useState<
+    | { kind: 'comments'; periodLabel: string; comments: Comment[] }
+    | { kind: 'actions'; periodLabel: string; actions: ActionItem[] }
+    | null
+  >(null);
 
   const chartValues = useMemo(() => {
     if (values.length === 0) {
@@ -225,9 +230,9 @@ const KpiDetailPage = () => {
   );
   const latestValue = values[0];
 
-  const getEventCountsForPeriod = (periodStart: string, periodEnd: string) => {
+  const getCommentsForPeriod = (periodStart: string, periodEnd: string) => {
     if (!periodStart || !periodEnd) {
-      return { actionsCount: 0, commentsCount: 0 };
+      return [] as Comment[];
     }
 
     const isWithin = (dateString: string) => {
@@ -236,22 +241,27 @@ const KpiDetailPage = () => {
       return day >= periodStart && day <= periodEnd;
     };
 
-    let actionsCount = 0;
-    let commentsCount = 0;
+    return comments.filter((comment) => comment.kpiId === kpiId && isWithin(comment.createdAt));
+  };
 
-    for (const action of actions) {
-      if (isWithin(action.createdAt)) {
-        actionsCount += 1;
-      }
+  const getActionsForPeriod = (periodStart: string, periodEnd: string) => {
+    if (!periodStart || !periodEnd) {
+      return [] as ActionItem[];
     }
 
-    for (const comment of comments) {
-      if (comment.kpiId === kpiId && isWithin(comment.createdAt)) {
-        commentsCount += 1;
-      }
-    }
+    const isWithin = (dateString: string | null | undefined) => {
+      if (!dateString) return false;
+      const day = dateString.slice(0, 10);
+      return day >= periodStart && day <= periodEnd;
+    };
 
-    return { actionsCount, commentsCount };
+    return actions.filter((action) => isWithin(action.createdAt) || isWithin(action.dueDate));
+  };
+
+  const getEventCountsForPeriod = (periodStart: string, periodEnd: string) => {
+    const periodActions = getActionsForPeriod(periodStart, periodEnd);
+    const periodComments = getCommentsForPeriod(periodStart, periodEnd);
+    return { actionsCount: periodActions.length, commentsCount: periodComments.length };
   };
 
   if (kpiQuery.isLoading) {
@@ -430,6 +440,40 @@ const KpiDetailPage = () => {
                       },
                     },
                   },
+                  onClick: (_event, elements, chart) => {
+                    const element = elements[0];
+                    if (!element) {
+                      return;
+                    }
+                    const dataset = chart.data.datasets?.[element.datasetIndex];
+                    const value = chartValuesChrono[element.index];
+                    if (!dataset || !value) {
+                      return;
+                    }
+                    if (dataset.label === 'Commentaires') {
+                      const periodComments = getCommentsForPeriod(value.periodStart, value.periodEnd);
+                      if (periodComments.length === 0) {
+                        return;
+                      }
+                      setChartSelection({
+                        kind: 'comments',
+                        periodLabel: formatPeriod(value),
+                        comments: periodComments,
+                      });
+                    } else if (dataset.label === 'Échéances actions') {
+                      const periodActions = getActionsForPeriod(value.periodStart, value.periodEnd);
+                      if (periodActions.length === 0) {
+                        return;
+                      }
+                      setChartSelection({
+                        kind: 'actions',
+                        periodLabel: formatPeriod(value),
+                        actions: periodActions,
+                      });
+                    } else {
+                      setChartSelection(null);
+                    }
+                  },
                   scales: {
                     x: {
                       grid: {
@@ -485,6 +529,55 @@ const KpiDetailPage = () => {
                 Commentaires
               </label>
             </div>
+            {chartSelection && (
+              <div
+                style={{
+                  border: '1px solid var(--border)',
+                  borderRadius: '8px',
+                  padding: '10px 12px',
+                  background: '#fafafa',
+                  marginTop: '4px',
+                }}
+              >
+                <div className="section-title" style={{ marginBottom: '6px' }}>
+                  <strong>
+                    {chartSelection.kind === 'comments' ? 'Commentaires' : 'Actions'} ·{' '}
+                    {chartSelection.periodLabel}
+                  </strong>
+                  <button
+                    type="button"
+                    className="button ghost"
+                    onClick={() => setChartSelection(null)}
+                  >
+                    Fermer
+                  </button>
+                </div>
+                {chartSelection.kind === 'comments' ? (
+                  <ul className="grid" style={{ gap: '6px' }}>
+                    {chartSelection.comments.map((comment) => (
+                      <li key={comment.id} className="muted" style={{ fontSize: '13px' }}>
+                        <div style={{ marginBottom: 2 }}>
+                          {new Date(comment.createdAt).toLocaleString('fr-FR')}
+                        </div>
+                        <div>{comment.content}</div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <ul className="grid" style={{ gap: '6px' }}>
+                    {chartSelection.actions.map((action) => (
+                      <li key={action.id} className="muted" style={{ fontSize: '13px' }}>
+                        <strong>{action.title}</strong>
+                        <div>
+                          Début : {new Date(action.createdAt).toLocaleDateString('fr-FR')} · Échéance :{' '}
+                          {action.dueDate ?? '-'}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
           </div>
         )}
       </Card>
