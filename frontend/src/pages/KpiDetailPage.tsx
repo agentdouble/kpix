@@ -144,30 +144,43 @@ const KpiDetailPage = () => {
       <Card title="Graphique d'évolution">
         {chartValues.length === 0 && <p className="muted">Pas encore de valeurs.</p>}
         {chartValues.length > 0 && (
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', minHeight: '160px' }}>
-            {chartValues.map((value) => (
-              <div key={value.id} style={{ flex: 1 }}>
-                <div
-                  style={{
-                    height: `${(value.value / maxValue) * 140}px`,
-                    background: '#000000',
-                    borderRadius: '8px 8px 4px 4px',
-                    display: 'flex',
-                    alignItems: 'flex-end',
-                    justifyContent: 'center',
-                    color: '#ffffff',
-                    padding: '6px',
-                    fontWeight: 700,
-                  }}
-                  title={formatPeriod(value)}
-                >
-                  {value.value}
+          <div style={{ minHeight: '180px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="150">
+              <line x1="0" y1="100" x2="100" y2="100" stroke="#d0d0d0" strokeWidth="1" />
+              {(() => {
+                const points = chartValues.map((value, index) => {
+                  const x = chartValues.length === 1 ? 50 : (index / (chartValues.length - 1)) * 100;
+                  const y = 100 - (value.value / maxValue) * 100;
+                  return { x, y, value };
+                });
+                const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
+                return (
+                  <>
+                    <polyline
+                      points={polylinePoints}
+                      fill="none"
+                      stroke="#000000"
+                      strokeWidth="2"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                    {points.map((p) => (
+                      <circle key={p.value.id} cx={p.x} cy={p.y} r={1.8} fill="#000000" />
+                    ))}
+                  </>
+                );
+              })()}
+            </svg>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {chartValues.map((value) => (
+                <div key={value.id} style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ fontWeight: 700 }}>{value.value}</div>
+                  <p className="muted" style={{ marginTop: '4px', fontSize: '13px' }}>
+                    {formatPeriod(value)}
+                  </p>
                 </div>
-                <p className="muted" style={{ marginTop: '8px', textAlign: 'center', fontSize: '13px' }}>
-                  {formatPeriod(value)}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
       </Card>
