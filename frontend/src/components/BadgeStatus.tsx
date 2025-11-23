@@ -9,20 +9,19 @@ const labelMap: Record<Props['status'], string> = {
 };
 
 const BadgeStatus = ({ status }: Props) => {
-  const tone = status === 'GREEN' ? 'green' : status === 'ORANGE' ? 'orange' : 'red';
   const label = labelMap[status];
   return (
-    <span className={`status-badge ${tone}`} aria-label={label} title={label}>
-      <span
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: '999px',
-          background: 'currentColor',
-          display: 'inline-block',
-        }}
-      />
-    </span>
+    <span
+      aria-label={label}
+      title={label}
+      style={{
+        width: 10,
+        height: 10,
+        borderRadius: '999px',
+        display: 'inline-block',
+        backgroundColor: status === 'GREEN' ? '#16a34a' : status === 'ORANGE' ? '#ea580c' : '#dc2626',
+      }}
+    />
   );
 };
 
