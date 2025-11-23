@@ -1,34 +1,37 @@
 # kpix
 
-Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (plan only for now).
+Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (React + Vite, noir & blanc).
 
 ## Backend (FastAPI)
 - Code and tooling live in `backend/`. Stack: FastAPI, async SQLAlchemy, Alembic, JWT auth, PostgreSQL.
-- Plans: see `backend/planbackend.md`.
+- Plan: `backend/planbackend.md`.
+- Quickstart:
+  1. `cd backend`
+  2. Crée un `.env` :
+     ```
+     DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpix
+     JWT_SECRET_KEY=change-me
+     ACCESS_TOKEN_EXPIRES_MINUTES=30
+     REFRESH_TOKEN_EXPIRES_MINUTES=10080
+     LOG_LEVEL=INFO
+     LLM_MODE=api  # ou local pour un runtime vLLM
+     ```
+  3. Installer les deps : `uv sync`
+  4. Migrations : `uv run alembic upgrade head`
+  5. Démarrer l’API : `uv run uvicorn kpix_backend.main:app --reload --host 0.0.0.0 --port 8000`
+  6. Docs : `/api/docs` quand le serveur tourne.
+- Tests backend : `cd backend && uv run --extra dev pytest`
 
-### Quickstart
-1. `cd backend`
-2. Create a `.env` with the essentials:
-   ```
-   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpix
-   JWT_SECRET_KEY=change-me
-   ACCESS_TOKEN_EXPIRES_MINUTES=30
-   REFRESH_TOKEN_EXPIRES_MINUTES=10080
-   LOG_LEVEL=INFO
-   LLM_MODE=api  # or local when wiring a local vLLM runtime
-   ```
-3. Install deps with uv: `uv sync`
-4. Run migrations: `uv run alembic upgrade head`
-5. Start the API: `uv run uvicorn kpix_backend.main:app --reload --host 0.0.0.0 --port 8000`
-6. Docs are served at `/api/docs` once the server is running.
-
-### Tests
-- Backend unit tests: `cd backend && uv run --extra dev pytest`
-
-## Frontend
-- Plan only for now: `frontend/planfrontend.md`.
+## Frontend (React + Vite)
+- Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Dashboards / KPI détail / Overview / Imports.
+- Plan : `frontend/planfrontend.md`.
+- Quickstart (depuis `frontend/`) :
+  - `npm install`
+  - `VITE_USE_DEMO_DATA=true npm run dev` pour le mode démo sans backend
+  - ou définir `VITE_API_BASE_URL` puis `npm run dev` pour utiliser l’API
+- Docs : `frontend/README.md`.
 
 ## Development notes
-- Follow the collaboration rules in `AGENTS.md`.
-- Package management is handled with uv (no pip/venv).
-- LLM usage must support both `local` (vLLM) and `api` (external provider) modes when features arrive; configuration keys are already available in `Settings`.
+- Suivre `AGENTS.md` pour les règles de contribution.
+- Gestion Python via uv (pas de pip/venv).
+- Les features LLM doivent supporter les modes `local` (vLLM) et `api` (provider externe).
