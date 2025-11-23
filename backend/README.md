@@ -17,6 +17,7 @@ ACCESS_TOKEN_EXPIRES_MINUTES=30
 REFRESH_TOKEN_EXPIRES_MINUTES=10080
 LOG_LEVEL=INFO
 LLM_MODE=api  # switch to local when a vLLM runtime is plugged in
+BACKEND_PORT=8000  # utilisé par ./start.sh pour choisir le port uvicorn
 ```
 
 ## Migrations

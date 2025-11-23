@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { importsApi } from '../api/imports';
+import type { ImportResult } from '../api/imports';
 import { useAuth } from '../app/auth';
 import Button from '../components/Button';
 import Card from '../components/Card';
@@ -12,6 +13,7 @@ const ImportsPage = () => {
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<ImportResult | null>(null);
 
   const jobsQuery = useQuery({
     queryKey: ['import-jobs'],
@@ -24,10 +26,12 @@ const ImportsPage = () => {
         throw new Error('Choisir un fichier');
       }
       setError(null);
+      setResult(null);
       return importsApi.uploadKpiValues(file, token);
     },
-    onSuccess: () => {
+    onSuccess: (res) => {
       setFile(null);
+      setResult(res);
       queryClient.invalidateQueries({ queryKey: ['import-jobs'] });
     },
     onError: (err: unknown) => {
@@ -62,6 +66,11 @@ const ImportsPage = () => {
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
           {error && <p className="error-text">{error}</p>}
+          {result && (
+            <p className="muted">
+              Import lancé (job {result.job_id}) · lignes ingérées : {result.ingested} · erreurs : {result.failed}
+            </p>
+          )}
           <Button type="submit" disabled={uploadMutation.isPending}>
             {uploadMutation.isPending ? 'Import en cours...' : 'Lancer l\'import'}
           </Button>
@@ -72,14 +81,14 @@ const ImportsPage = () => {
         {jobsQuery.isLoading && <p className="muted">Chargement...</p>}
         {jobs.length === 0 && !jobsQuery.isLoading && <p>Aucun import pour le moment.</p>}
         {jobs.length > 0 && (
-          <Table headers={["Fichier", "Statut", "Progression", "Début", "Fin"]}>
+          <Table headers={["Type", "Statut", "Créé le", "Mis à jour", "Erreur"]}>
             {jobs.map((job: ImportJob) => (
               <tr key={job.id}>
-                <td>{job.filename}</td>
+                <td>{job.type}</td>
                 <td>{job.status}</td>
-                <td>{job.progress}%</td>
-                <td>{new Date(job.startedAt).toLocaleString('fr-FR')}</td>
-                <td>{job.finishedAt ? new Date(job.finishedAt).toLocaleString('fr-FR') : '-'}</td>
+                <td>{new Date(job.createdAt).toLocaleString('fr-FR')}</td>
+                <td>{new Date(job.updatedAt).toLocaleString('fr-FR')}</td>
+                <td>{job.errorMessage ?? '-'}</td>
               </tr>
             ))}
           </Table>

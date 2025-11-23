@@ -6,13 +6,14 @@ import Card from '../components/Card';
 import Table from '../components/Table';
 import { useAuth } from '../app/auth';
 import { dashboardsApi } from '../api/dashboards';
-import type { Dashboard } from '../types';
+import { reportingApi } from '../api/reporting';
+import type { Dashboard, DashboardOverview } from '../types';
 
 const DashboardsListPage = () => {
   const { token } = useAuth();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
-  const [process, setProcess] = useState('');
+  const [processName, setProcessName] = useState('');
   const [description, setDescription] = useState('');
 
   const dashboardsQuery = useQuery({
@@ -20,17 +21,28 @@ const DashboardsListPage = () => {
     queryFn: () => dashboardsApi.list(token),
   });
 
+  const overviewQuery = useQuery({
+    queryKey: ['reporting-overview'],
+    queryFn: () => reportingApi.overview(token),
+  });
+
   const createMutation = useMutation({
-    mutationFn: () => dashboardsApi.create({ title, process, description }, token),
+    mutationFn: () => dashboardsApi.create({ title, processName, description }, token),
     onSuccess: () => {
       setTitle('');
-      setProcess('');
+      setProcessName('');
       setDescription('');
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
+      queryClient.invalidateQueries({ queryKey: ['reporting-overview'] });
     },
   });
 
   const dashboards = dashboardsQuery.data ?? [];
+  const overviewById =
+    overviewQuery.data?.reduce<Record<string, DashboardOverview>>((acc, item) => {
+      acc[item.dashboardId] = item;
+      return acc;
+    }, {}) ?? {};
 
   return (
     <div className="grid" style={{ gap: '24px' }}>
@@ -57,7 +69,7 @@ const DashboardsListPage = () => {
           </div>
           <div className="field">
             <label htmlFor="process">Process</label>
-            <input id="process" value={process} onChange={(e) => setProcess(e.target.value)} required />
+            <input id="process" value={processName} onChange={(e) => setProcessName(e.target.value)} required />
           </div>
           <div className="field" style={{ gridColumn: '1 / -1' }}>
             <label htmlFor="description">Description</label>
@@ -83,32 +95,39 @@ const DashboardsListPage = () => {
         {!dashboardsQuery.isLoading && dashboards.length === 0 && <p>Aucun tableau de bord pour le moment.</p>}
         {dashboards.length > 0 && (
           <Table headers={["Titre", "Process", "Statut global", "Actions"]}>
-            {dashboards.map((dashboard: Dashboard) => (
-              <tr key={dashboard.id}>
-                <td>
-                  <strong>{dashboard.title}</strong>
-                </td>
-                <td>{dashboard.process}</td>
-                <td>
-                  <div className="chips">
-                    <span className="pill">
-                      <strong>Vert</strong> {dashboard.stats.green}
-                    </span>
-                    <span className="pill">
-                      <strong>Orange</strong> {dashboard.stats.orange}
-                    </span>
-                    <span className="pill">
-                      <strong>Rouge</strong> {dashboard.stats.red}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <Link to={`/dashboards/${dashboard.id}`} className="nav-link">
-                    Ouvrir
-                  </Link>
-                </td>
-              </tr>
-            ))}
+            {dashboards.map((dashboard: Dashboard) => {
+              const overview = overviewById[dashboard.id];
+              return (
+                <tr key={dashboard.id}>
+                  <td>
+                    <strong>{dashboard.title}</strong>
+                  </td>
+                  <td>{dashboard.processName ?? '-'}</td>
+                  <td>
+                    {overview ? (
+                      <div className="chips">
+                        <span className="pill">
+                          <strong>Vert</strong> {overview.statusBreakdown.GREEN}
+                        </span>
+                        <span className="pill">
+                          <strong>Orange</strong> {overview.statusBreakdown.ORANGE}
+                        </span>
+                        <span className="pill">
+                          <strong>Rouge</strong> {overview.statusBreakdown.RED}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="muted">Statuts indisponibles</span>
+                    )}
+                  </td>
+                  <td>
+                    <Link to={`/dashboards/${dashboard.id}`} className="nav-link">
+                      Ouvrir
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </Table>
         )}
       </Card>

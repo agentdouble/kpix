@@ -4,6 +4,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from kpix_backend.api.deps_resources import get_user_or_404
 from kpix_backend.core.deps import get_current_admin, get_current_user
@@ -22,9 +23,13 @@ async def list_users(
     session: AsyncSession = Depends(get_session),
     current_user: User = Depends(get_current_admin),
 ) -> list[UserPublic]:
-    result = await session.execute(select(User).where(User.organization_id == current_user.organization_id))
+    result = await session.execute(
+        select(User)
+            .options(selectinload(User.organization))
+            .where(User.organization_id == current_user.organization_id)
+    )
     users = result.scalars().all()
-    return [UserPublic.model_validate(u) for u in users]
+    return [UserPublic.from_model(u) for u in users]
 
 
 @router.post("", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
@@ -47,9 +52,9 @@ async def create_user(
     )
     session.add(user)
     await session.commit()
-    await session.refresh(user)
+    await session.refresh(user, attribute_names=["organization"])
     logger.info("user_created", extra={"user_id": str(user.id), "organization_id": str(user.organization_id)})
-    return UserPublic.model_validate(user)
+    return UserPublic.from_model(user)
 
 
 @router.patch("/{user_id}", response_model=UserPublic)
@@ -69,9 +74,9 @@ async def update_user(
     if payload.password:
         user.password_hash = hash_password(payload.password)
     await session.commit()
-    await session.refresh(user)
+    await session.refresh(user, attribute_names=["organization"])
     logger.info("user_updated", extra={"user_id": str(user.id), "organization_id": str(user.organization_id)})
-    return UserPublic.model_validate(user)
+    return UserPublic.from_model(user)
 
 
 @router.get("/teams", response_model=list[TeamPublic])

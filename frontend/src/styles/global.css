@@ -96,6 +96,11 @@ ul {
   font-size: 14px;
 }
 
+.info-text {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

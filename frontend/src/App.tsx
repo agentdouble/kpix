@@ -7,11 +7,13 @@ import ImportsPage from './pages/ImportsPage';
 import KpiDetailPage from './pages/KpiDetailPage';
 import LoginPage from './pages/LoginPage';
 import OverviewPage from './pages/OverviewPage';
+import SignUpPage from './pages/SignUpPage';
 
 function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignUpPage />} />
       <Route
         element={
           <ProtectedRoute>

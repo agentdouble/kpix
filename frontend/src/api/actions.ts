@@ -2,25 +2,65 @@ import type { ActionItem } from '../types';
 import { USE_DEMO_DATA, request } from './client';
 import { demoActions } from './demoData';
 
+type ApiAction = {
+  id: string;
+  kpi_id: string;
+  organization_id: string;
+  title: string;
+  description?: string | null;
+  owner_id?: string | null;
+  due_date?: string | null;
+  progress: number;
+  status: ActionItem['status'];
+  created_at: string;
+  updated_at: string;
+};
+
+const mapAction = (payload: ApiAction): ActionItem => ({
+  id: payload.id,
+  kpiId: payload.kpi_id,
+  organizationId: payload.organization_id,
+  title: payload.title,
+  description: payload.description,
+  ownerId: payload.owner_id,
+  dueDate: payload.due_date,
+  progress: payload.progress,
+  status: payload.status,
+  createdAt: payload.created_at,
+  updatedAt: payload.updated_at,
+});
+
 export const actionsApi = {
   list: async (kpiId: string, token?: string | null): Promise<ActionItem[]> => {
     if (USE_DEMO_DATA) {
       return demoActions.list(kpiId);
     }
-    return request<ActionItem[]>(`/kpis/${kpiId}/actions`, { token: token ?? undefined });
+    const data = await request<ApiAction[]>(`/kpis/${kpiId}/actions`, { token: token ?? undefined });
+    return data.map(mapAction);
   },
   create: async (
     kpiId: string,
-    payload: Pick<ActionItem, 'title' | 'owner' | 'dueDate'> & { progress?: number },
+    payload: { title: string; description?: string; dueDate?: string; progress?: number },
     token?: string | null,
   ): Promise<ActionItem> => {
     if (USE_DEMO_DATA) {
-      return demoActions.create(kpiId, payload);
+      return demoActions.create(kpiId, {
+        title: payload.title,
+        description: payload.description,
+        dueDate: payload.dueDate,
+        progress: payload.progress,
+      });
     }
-    return request<ActionItem>(`/kpis/${kpiId}/actions`, {
+    const data = await request<ApiAction>(`/kpis/${kpiId}/actions`, {
       method: 'POST',
-      body: payload,
+      body: {
+        title: payload.title,
+        description: payload.description,
+        due_date: payload.dueDate,
+        progress: payload.progress ?? 0,
+      },
       token: token ?? undefined,
     });
+    return mapAction(data);
   },
 };

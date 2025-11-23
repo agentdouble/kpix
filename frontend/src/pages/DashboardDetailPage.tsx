@@ -1,14 +1,25 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { dashboardsApi } from '../api/dashboards';
 import { kpisApi } from '../api/kpis';
+import { reportingApi } from '../api/reporting';
 import { useAuth } from '../app/auth';
-import BadgeStatus from '../components/BadgeStatus';
 import Button from '../components/Button';
 import Card from '../components/Card';
 import Table from '../components/Table';
-import type { Kpi } from '../types';
+import type { DashboardOverview, Kpi, KpiDirection, KpiFrequency } from '../types';
+
+const directionLabel: Record<KpiDirection, string> = {
+  UP_IS_BETTER: 'Plus haut = mieux',
+  DOWN_IS_BETTER: 'Plus bas = mieux',
+};
+
+const frequencyLabel: Record<KpiFrequency, string> = {
+  DAILY: 'Quotidien',
+  WEEKLY: 'Hebdomadaire',
+  MONTHLY: 'Mensuel',
+};
 
 const DashboardDetailPage = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
@@ -27,25 +38,67 @@ const DashboardDetailPage = () => {
     enabled: Boolean(dashboardId),
   });
 
-  const [newKpi, setNewKpi] = useState({ name: '', frequency: 'Mensuel', unit: '', target: '', direction: 'UP' });
+  const overviewQuery = useQuery({
+    queryKey: ['reporting-overview'],
+    queryFn: () => reportingApi.overview(token),
+    enabled: Boolean(dashboardId),
+    staleTime: 5_000,
+  });
+
+  const dashboardOverview = useMemo<DashboardOverview | undefined>(
+    () => overviewQuery.data?.find((item) => item.dashboardId === dashboardId),
+    [overviewQuery.data, dashboardId],
+  );
+
+  const [newKpi, setNewKpi] = useState<{
+    name: string;
+    frequency: KpiFrequency;
+    unit: string;
+    direction: KpiDirection;
+    thresholdGreen: string;
+    thresholdOrange: string;
+    thresholdRed: string;
+  }>({
+    name: '',
+    frequency: 'MONTHLY',
+    unit: '',
+    direction: 'UP_IS_BETTER',
+    thresholdGreen: '95',
+    thresholdOrange: '90',
+    thresholdRed: '80',
+  });
 
   const addKpiMutation = useMutation({
-    mutationFn: () =>
-      kpisApi.create(
-        dashboardId!,
+    mutationFn: () => {
+      if (!dashboardId) {
+        throw new Error('Dashboard manquant');
+      }
+      return kpisApi.create(
+        dashboardId,
         {
           name: newKpi.name,
           frequency: newKpi.frequency,
-          unit: newKpi.unit,
-          target: newKpi.target ? Number(newKpi.target) : undefined,
-          direction: newKpi.direction as 'UP' | 'DOWN',
+          unit: newKpi.unit || undefined,
+          direction: newKpi.direction,
+          thresholdGreen: Number(newKpi.thresholdGreen),
+          thresholdOrange: Number(newKpi.thresholdOrange),
+          thresholdRed: Number(newKpi.thresholdRed),
         },
         token,
-      ),
+      );
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kpis', dashboardId] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard', dashboardId] });
-      setNewKpi({ name: '', frequency: 'Mensuel', unit: '', target: '', direction: 'UP' });
+      queryClient.invalidateQueries({ queryKey: ['reporting-overview'] });
+      setNewKpi({
+        name: '',
+        frequency: 'MONTHLY',
+        unit: '',
+        direction: 'UP_IS_BETTER',
+        thresholdGreen: '95',
+        thresholdOrange: '90',
+        thresholdRed: '80',
+      });
     },
   });
 
@@ -64,21 +117,28 @@ const DashboardDetailPage = () => {
     <div className="grid" style={{ gap: '24px' }}>
       <div className="section-title">
         <div>
-          <p className="muted">{dashboard.process}</p>
+          <p className="muted">{dashboard.processName ?? 'Process non renseigné'}</p>
           <h1>{dashboard.title}</h1>
           {dashboard.description && <p className="muted">{dashboard.description}</p>}
         </div>
-        <div className="chips">
-          <span className="pill">
-            <strong>Vert</strong> {dashboard.stats.green}
-          </span>
-          <span className="pill">
-            <strong>Orange</strong> {dashboard.stats.orange}
-          </span>
-          <span className="pill">
-            <strong>Rouge</strong> {dashboard.stats.red}
-          </span>
-        </div>
+        {dashboardOverview ? (
+          <div className="chips">
+            <span className="pill">
+              <strong>Vert</strong> {dashboardOverview.statusBreakdown.GREEN}
+            </span>
+            <span className="pill">
+              <strong>Orange</strong> {dashboardOverview.statusBreakdown.ORANGE}
+            </span>
+            <span className="pill">
+              <strong>Rouge</strong> {dashboardOverview.statusBreakdown.RED}
+            </span>
+            <span className="pill">
+              <strong>KPIs</strong> {dashboardOverview.totalKpis}
+            </span>
+          </div>
+        ) : (
+          <p className="muted">Statuts en cours de chargement...</p>
+        )}
       </div>
 
       <Card title="KPIs" actions={<Button onClick={() => document.getElementById('new-kpi-name')?.focus()}>Ajouter un KPI</Button>}>
@@ -86,17 +146,27 @@ const DashboardDetailPage = () => {
         {kpisQuery.isError && <p className="error-text">Impossible de charger les KPIs.</p>}
         {kpis.length === 0 && !kpisQuery.isLoading && <p>Aucun KPI pour le moment.</p>}
         {kpis.length > 0 && (
-          <Table headers={["Nom", "Dernière valeur", "Statut", "Fréquence", "Actions"]}>
+          <Table headers={["Nom", "Fréquence", "Sens", "Seuils", "Actions"]}>
             {kpis.map((kpi: Kpi) => (
               <tr key={kpi.id}>
                 <td>
                   <strong>{kpi.name}</strong>
                 </td>
-                <td>{kpi.latestValue !== undefined ? `${kpi.latestValue} ${kpi.unit ?? ''}` : '-'}</td>
+                <td>{frequencyLabel[kpi.frequency]}</td>
+                <td>{directionLabel[kpi.direction]}</td>
                 <td>
-                  <BadgeStatus status={kpi.status} />
+                  <div className="chips">
+                    <span className="pill">
+                      <strong>Vert</strong> {kpi.thresholdGreen}
+                    </span>
+                    <span className="pill">
+                      <strong>Orange</strong> {kpi.thresholdOrange}
+                    </span>
+                    <span className="pill">
+                      <strong>Rouge</strong> {kpi.thresholdRed}
+                    </span>
+                  </div>
                 </td>
-                <td>{kpi.frequency}</td>
                 <td>
                   <Link to={`/kpis/${kpi.id}`} className="nav-link">
                     Voir
@@ -131,11 +201,11 @@ const DashboardDetailPage = () => {
             <select
               id="new-kpi-frequency"
               value={newKpi.frequency}
-              onChange={(e) => setNewKpi((prev) => ({ ...prev, frequency: e.target.value }))}
+              onChange={(e) => setNewKpi((prev) => ({ ...prev, frequency: e.target.value as KpiFrequency }))}
             >
-              <option value="Hebdomadaire">Hebdomadaire</option>
-              <option value="Mensuel">Mensuel</option>
-              <option value="Trimestriel">Trimestriel</option>
+              <option value="DAILY">Quotidien</option>
+              <option value="WEEKLY">Hebdomadaire</option>
+              <option value="MONTHLY">Mensuel</option>
             </select>
           </div>
           <div className="field">
@@ -148,25 +218,48 @@ const DashboardDetailPage = () => {
             />
           </div>
           <div className="field">
-            <label htmlFor="new-kpi-target">Cible</label>
-            <input
-              id="new-kpi-target"
-              value={newKpi.target}
-              onChange={(e) => setNewKpi((prev) => ({ ...prev, target: e.target.value }))}
-              type="number"
-              step="any"
-            />
-          </div>
-          <div className="field">
             <label htmlFor="new-kpi-direction">Sens de variation</label>
             <select
               id="new-kpi-direction"
               value={newKpi.direction}
-              onChange={(e) => setNewKpi((prev) => ({ ...prev, direction: e.target.value }))}
+              onChange={(e) => setNewKpi((prev) => ({ ...prev, direction: e.target.value as KpiDirection }))}
             >
-              <option value="UP">Plus haut = mieux</option>
-              <option value="DOWN">Plus bas = mieux</option>
+              <option value="UP_IS_BETTER">Plus haut = mieux</option>
+              <option value="DOWN_IS_BETTER">Plus bas = mieux</option>
             </select>
+          </div>
+          <div className="field">
+            <label htmlFor="new-kpi-green">Seuil vert</label>
+            <input
+              id="new-kpi-green"
+              type="number"
+              step="any"
+              value={newKpi.thresholdGreen}
+              onChange={(e) => setNewKpi((prev) => ({ ...prev, thresholdGreen: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="new-kpi-orange">Seuil orange</label>
+            <input
+              id="new-kpi-orange"
+              type="number"
+              step="any"
+              value={newKpi.thresholdOrange}
+              onChange={(e) => setNewKpi((prev) => ({ ...prev, thresholdOrange: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="new-kpi-red">Seuil rouge</label>
+            <input
+              id="new-kpi-red"
+              type="number"
+              step="any"
+              value={newKpi.thresholdRed}
+              onChange={(e) => setNewKpi((prev) => ({ ...prev, thresholdRed: e.target.value }))}
+              required
+            />
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
             <Button type="submit" disabled={addKpiMutation.isPending}>
