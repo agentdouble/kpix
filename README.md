@@ -5,6 +5,9 @@ Initial repository setup for the kpix project. The codebase is organized into `b
 ## Backend
 - See `backend/planbackend.md` for the technical plan of the performance management backend (PostgreSQL, APIs, domains).
 
+## Frontend
+- See `frontend/planfrontend.md` for the technical and UX plan of the web frontend (React stack, pages, black & white design).
+
 ## Development notes
 - Follow the guidelines in `AGENTS.md` for contributions and environment expectations.
 - Use `uv` for Python package management for any Python backend code.
