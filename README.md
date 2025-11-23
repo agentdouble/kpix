@@ -1,14 +1,34 @@
 # kpix
 
-Initial repository setup for the kpix project. The codebase is organized into `backend/` and `frontend/` directories.
+Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (plan only for now).
 
-## Backend
-- See `backend/planbackend.md` for the technical plan of the performance management backend (PostgreSQL, APIs, domains).
+## Backend (FastAPI)
+- Code and tooling live in `backend/`. Stack: FastAPI, async SQLAlchemy, Alembic, JWT auth, PostgreSQL.
+- Plans: see `backend/planbackend.md`.
+
+### Quickstart
+1. `cd backend`
+2. Create a `.env` with the essentials:
+   ```
+   DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpix
+   JWT_SECRET_KEY=change-me
+   ACCESS_TOKEN_EXPIRES_MINUTES=30
+   REFRESH_TOKEN_EXPIRES_MINUTES=10080
+   LOG_LEVEL=INFO
+   LLM_MODE=api  # or local when wiring a local vLLM runtime
+   ```
+3. Install deps with uv: `uv sync`
+4. Run migrations: `uv run alembic upgrade head`
+5. Start the API: `uv run uvicorn kpix_backend.main:app --reload --host 0.0.0.0 --port 8000`
+6. Docs are served at `/api/docs` once the server is running.
+
+### Tests
+- Backend unit tests: `cd backend && uv run --extra dev pytest`
 
 ## Frontend
-- See `frontend/planfrontend.md` for the technical and UX plan of the web frontend (React stack, pages, black & white design).
+- Plan only for now: `frontend/planfrontend.md`.
 
 ## Development notes
-- Follow the guidelines in `AGENTS.md` for contributions and environment expectations.
-- Use `uv` for Python package management for any Python backend code.
-- Maintain separate local (vLLM) and API (external provider) modes for LLM usage if/when LLM features are introduced.
+- Follow the collaboration rules in `AGENTS.md`.
+- Package management is handled with uv (no pip/venv).
+- LLM usage must support both `local` (vLLM) and `api` (external provider) modes when features arrive; configuration keys are already available in `Settings`.
