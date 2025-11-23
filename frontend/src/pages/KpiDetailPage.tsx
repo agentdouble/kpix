@@ -187,7 +187,34 @@ const KpiDetailPage = () => {
   const values = valuesQuery.data ?? [];
   const actions = actionsQuery.data ?? [];
   const comments = commentsQuery.data ?? [];
-  const chartValues = useMemo(() => values.slice(0, 8), [values]);
+  const [chartRange, setChartRange] = useState<'3M' | '6M' | '1Y' | 'ALL'>('6M');
+  const [showThresholds, setShowThresholds] = useState(false);
+  const [showActionDeadlines, setShowActionDeadlines] = useState(false);
+  const [showCommentsOnChart, setShowCommentsOnChart] = useState(false);
+
+  const chartValues = useMemo(() => {
+    if (values.length === 0) {
+      return [];
+    }
+    if (chartRange === 'ALL') {
+      return values;
+    }
+    const latest = values[0];
+    const latestDate = new Date(latest.periodStart);
+    if (Number.isNaN(latestDate.getTime())) {
+      return values;
+    }
+    const months = chartRange === '3M' ? 3 : chartRange === '6M' ? 6 : 12;
+    const minDate = new Date(latestDate);
+    minDate.setMonth(minDate.getMonth() - months);
+    return values.filter((value) => {
+      const d = new Date(value.periodStart);
+      if (Number.isNaN(d.getTime())) {
+        return true;
+      }
+      return d >= minDate && d <= latestDate;
+    });
+  }, [values, chartRange]);
   const chartValuesChrono = useMemo(
     () =>
       [...chartValues].sort((a, b) => {
@@ -253,39 +280,129 @@ const KpiDetailPage = () => {
         {latestValue ? <BadgeStatus status={latestValue.status} /> : <span className="pill">Pas de valeur récente</span>}
       </div>
 
-      <Card title="Graphique d'évolution">
+      <Card
+        title="Graphique d'évolution"
+        actions={(
+          <div className="chips">
+            {(['3M', '6M', '1Y', 'ALL'] as const).map((range) => (
+              <button
+                key={range}
+                type="button"
+                className="pill"
+                style={{
+                  cursor: 'pointer',
+                  background: chartRange === range ? '#000000' : '#ffffff',
+                  color: chartRange === range ? '#ffffff' : 'var(--text-primary)',
+                  borderColor: chartRange === range ? '#000000' : 'var(--border)',
+                  fontSize: 12,
+                  paddingInline: 10,
+                }}
+                onClick={() => setChartRange(range)}
+              >
+                {range === '3M' && '3 mois'}
+                {range === '6M' && '6 mois'}
+                {range === '1Y' && '12 mois'}
+                {range === 'ALL' && 'Tout'}
+              </button>
+            ))}
+          </div>
+        )}
+      >
         {chartValuesChrono.length === 0 && <p className="muted">Pas encore de valeurs.</p>}
         {chartValuesChrono.length > 0 && (
-          <div style={{ minHeight: '200px' }}>
+          <div style={{ minHeight: '230px', display: 'grid', gap: '8px' }}>
             <div style={{ height: 180 }}>
               <Line
                 data={(() => {
                   const labels = chartValuesChrono.map((v) => formatPeriod(v));
                   const data = chartValuesChrono.map((v) => v.value);
                   const pointBackgroundColor = chartValuesChrono.map((v) => statusColor(v.status));
-                  const eventCounts = chartValuesChrono.map((v) =>
-                    getEventCountsForPeriod(v.periodStart, v.periodEnd),
-                  );
+                  const eventCounts = chartValuesChrono.map((v) => getEventCountsForPeriod(v.periodStart, v.periodEnd));
 
-                  return {
-                    labels,
-                    datasets: [
+                  const datasets: any[] = [
+                    {
+                      label: kpi.unit ? `Valeur (${kpi.unit})` : 'Valeur',
+                      data,
+                      borderColor: '#000000',
+                      borderWidth: 1.6,
+                      backgroundColor: 'rgba(0,0,0,0.04)',
+                      pointBackgroundColor,
+                      pointBorderColor: '#000000',
+                      pointBorderWidth: 1,
+                      pointRadius: eventCounts.map((e) => (e.actionsCount + e.commentsCount > 0 ? 5 : 4)),
+                      pointHoverRadius: 6,
+                      tension: 0.3,
+                      fill: true,
+                    },
+                  ];
+
+                  if (showThresholds) {
+                    datasets.push(
                       {
-                        label: kpi.unit ? `Valeur (${kpi.unit})` : 'Valeur',
-                        data,
-                        borderColor: '#000000',
-                        borderWidth: 1.6,
-                        backgroundColor: 'rgba(0,0,0,0.04)',
-                        pointBackgroundColor,
-                        pointBorderColor: '#000000',
-                        pointBorderWidth: 1,
-                        pointRadius: eventCounts.map((e) => (e.actionsCount + e.commentsCount > 0 ? 5 : 4)),
-                        pointHoverRadius: 6,
-                        tension: 0.3,
-                        fill: true,
+                        label: 'Seuil vert',
+                        data: chartValuesChrono.map(() => kpi.thresholdGreen),
+                        borderColor: '#16a34a',
+                        borderWidth: 0.8,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        fill: false,
                       },
-                    ],
-                  };
+                      {
+                        label: 'Seuil orange',
+                        data: chartValuesChrono.map(() => kpi.thresholdOrange),
+                        borderColor: '#ea580c',
+                        borderWidth: 0.8,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        fill: false,
+                      },
+                      {
+                        label: 'Seuil rouge',
+                        data: chartValuesChrono.map(() => kpi.thresholdRed),
+                        borderColor: '#dc2626',
+                        borderWidth: 0.8,
+                        borderDash: [4, 4],
+                        pointRadius: 0,
+                        fill: false,
+                      },
+                    );
+                  }
+
+                  if (showActionDeadlines) {
+                    const actionData = chartValuesChrono.map((value) => {
+                      const { actionsCount } = getEventCountsForPeriod(value.periodStart, value.periodEnd);
+                      return actionsCount > 0 ? value.value : null;
+                    });
+                    datasets.push({
+                      label: 'Échéances actions',
+                      data: actionData,
+                      borderWidth: 0,
+                      pointRadius: actionData.map((v) => (v == null ? 0 : 5)),
+                      pointStyle: 'triangle',
+                      pointBackgroundColor: '#000000',
+                      pointBorderColor: '#000000',
+                      showLine: false,
+                    });
+                  }
+
+                  if (showCommentsOnChart) {
+                    const commentData = chartValuesChrono.map((value) => {
+                      const { commentsCount } = getEventCountsForPeriod(value.periodStart, value.periodEnd);
+                      return commentsCount > 0 ? value.value : null;
+                    });
+                    datasets.push({
+                      label: 'Commentaires',
+                      data: commentData,
+                      borderWidth: 0,
+                      pointRadius: commentData.map((v) => (v == null ? 0 : 4)),
+                      pointStyle: 'rectRounded',
+                      pointBackgroundColor: '#6b7280',
+                      pointBorderColor: '#6b7280',
+                      showLine: false,
+                    });
+                  }
+
+                  return { labels, datasets };
                 })()}
                 options={{
                   maintainAspectRatio: false,
@@ -341,6 +458,32 @@ const KpiDetailPage = () => {
                   },
                 }}
               />
+            </div>
+            <div className="chips" style={{ fontSize: 12 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={showThresholds}
+                  onChange={(e) => setShowThresholds(e.target.checked)}
+                />
+                Afficher les seuils
+              </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={showActionDeadlines}
+                  onChange={(e) => setShowActionDeadlines(e.target.checked)}
+                />
+                Échéances actions
+              </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={showCommentsOnChart}
+                  onChange={(e) => setShowCommentsOnChart(e.target.checked)}
+                />
+                Commentaires
+              </label>
             </div>
           </div>
         )}
