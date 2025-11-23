@@ -256,7 +256,7 @@ const KpiDetailPage = () => {
       <Card title="Graphique d'évolution">
         {chartValuesChrono.length === 0 && <p className="muted">Pas encore de valeurs.</p>}
         {chartValuesChrono.length > 0 && (
-          <div style={{ minHeight: '220px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ minHeight: '200px' }}>
             <div style={{ height: 180 }}>
               <Line
                 data={(() => {
@@ -341,39 +341,6 @@ const KpiDetailPage = () => {
                   },
                 }}
               />
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              {chartValuesChrono.map((value) => (
-                <div key={value.id} style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontWeight: 700, color: statusColor(value.status) }}>{value.value}</div>
-                  <p className="muted" style={{ marginTop: '4px', fontSize: '13px' }}>
-                    {formatPeriod(value)}
-                  </p>
-                  {(() => {
-                    const { actionsCount, commentsCount } = getEventCountsForPeriod(
-                      value.periodStart,
-                      value.periodEnd,
-                    );
-                    const hasEvents = actionsCount > 0 || commentsCount > 0;
-
-                    if (!hasEvents) {
-                      return null;
-                    }
-
-                    return (
-                      <p className="muted" style={{ marginTop: '2px', fontSize: '12px' }}>
-                        {actionsCount > 0
-                          ? `${actionsCount} action${actionsCount > 1 ? 's' : ''}`
-                          : '0 action'}
-                        {' · '}
-                        {commentsCount > 0
-                          ? `${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}`
-                          : '0 commentaire'}
-                      </p>
-                    );
-                  })()}
-                </div>
-              ))}
             </div>
           </div>
         )}
