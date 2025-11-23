@@ -15,8 +15,7 @@ const DashboardsListPage = () => {
   const [title, setTitle] = useState('');
   const [processName, setProcessName] = useState('');
   const [description, setDescription] = useState('');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'list' | 'direction'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'direction' | 'create'>('list');
   const titleInputRef = useRef<HTMLInputElement | null>(null);
 
   const dashboardsQuery = useQuery({
@@ -41,17 +40,17 @@ const DashboardsListPage = () => {
       setTitle('');
       setProcessName('');
       setDescription('');
-      setIsCreateOpen(false);
+      setActiveTab('list');
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
       queryClient.invalidateQueries({ queryKey: ['reporting-overview'] });
     },
   });
 
   useEffect(() => {
-    if (isCreateOpen && titleInputRef.current) {
+    if (activeTab === 'create' && titleInputRef.current) {
       titleInputRef.current.focus();
     }
-  }, [isCreateOpen]);
+  }, [activeTab]);
 
   const dashboards = dashboardsQuery.data ?? [];
   const overviewById =
@@ -80,15 +79,16 @@ const DashboardsListPage = () => {
           >
             Direction
           </Button>
-          {activeTab === 'list' && (
-            <Button onClick={() => setIsCreateOpen((prev) => !prev)}>
-              {isCreateOpen ? 'Fermer le panneau' : 'Créer un tableau de bord'}
-            </Button>
-          )}
+          <Button
+            variant={activeTab === 'create' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab('create')}
+          >
+            Créer un tableau de bord
+          </Button>
         </div>
       </div>
 
-      {activeTab === 'list' && isCreateOpen && (
+      {activeTab === 'create' && (
         <Card title="Ajouter un tableau de bord">
           <form
             className="grid two-columns"
@@ -128,7 +128,7 @@ const DashboardsListPage = () => {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setIsCreateOpen(false)}
+                onClick={() => setActiveTab('list')}
               >
                 Annuler
               </Button>

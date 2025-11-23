@@ -34,7 +34,7 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 - Tests backend : `cd backend && uv run --extra dev pytest`
 
 ## Frontend (React + Vite)
-- Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Tableaux de bord (onglets Liste + Direction) / KPI détail / Imports.
+- Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Tableaux de bord (onglets Liste, Direction, Création) / KPI détail / Imports.
 - Plan : `frontend/planfrontend.md`.
 - Quickstart (depuis `frontend/`) :
   - `npm install`
