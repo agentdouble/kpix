@@ -15,6 +15,7 @@ import { actionsApi } from '../api/actions';
 import { commentsApi } from '../api/comments';
 import { kpisApi } from '../api/kpis';
 import { kpiValuesApi } from '../api/kpiValues';
+import { usersApi } from '../api/users';
 import { useAuth } from '../app/auth';
 import BadgeStatus from '../components/BadgeStatus';
 import Button from '../components/Button';
@@ -84,8 +85,21 @@ const KpiDetailPage = () => {
     enabled: Boolean(kpiId),
   });
 
+  const usersQuery = useQuery({
+    queryKey: ['users', 'members'],
+    queryFn: () => usersApi.listMembers(token),
+    enabled: Boolean(token),
+  });
+
   const [valueForm, setValueForm] = useState({ periodStart: '', value: '', comment: '' });
-  const [actionForm, setActionForm] = useState({ title: '', description: '', dueDate: '' });
+  const [actionForm, setActionForm] = useState({
+    title: '',
+    description: '',
+    dueDate: '',
+    ownerId: '',
+    progress: '0',
+    status: 'OPEN' as ActionItem['status'],
+  });
   const [commentForm, setCommentForm] = useState({ message: '' });
   const [activeTab, setActiveTab] = useState<'value' | 'action' | 'comment'>('value');
 
@@ -109,14 +123,28 @@ const KpiDetailPage = () => {
 
   const addActionMutation = useMutation({
     mutationFn: () =>
-      actionsApi.create(kpiId!, {
-        title: actionForm.title,
-        description: actionForm.description || undefined,
-        dueDate: actionForm.dueDate || undefined,
-      }, token),
+      actionsApi.create(
+        kpiId!,
+        {
+          title: actionForm.title,
+          description: actionForm.description || undefined,
+          dueDate: actionForm.dueDate || undefined,
+          ownerId: actionForm.ownerId || undefined,
+          progress: Number(actionForm.progress) || 0,
+          status: actionForm.status,
+        },
+        token,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kpi-actions', kpiId] });
-      setActionForm({ title: '', description: '', dueDate: '' });
+      setActionForm({
+        title: '',
+        description: '',
+        dueDate: '',
+        ownerId: '',
+        progress: '0',
+        status: 'OPEN',
+      });
     },
   });
 
@@ -457,6 +485,18 @@ const KpiDetailPage = () => {
                           {action.progress}% · {actionStatusLabel[action.status]}
                         </span>
                       </div>
+                      {(() => {
+                        const members = usersQuery.data ?? [];
+                        const owner = members.find((member) => member.id === action.ownerId);
+                        if (!owner) {
+                          return null;
+                        }
+                        return (
+                          <p className="muted" style={{ fontSize: '13px', marginBottom: '4px' }}>
+                            Responsable : <strong>{owner.fullName}</strong>
+                          </p>
+                        );
+                      })()}
                       {action.description && <p className="muted">{action.description}</p>}
                       {action.dueDate && <p className="muted">Échéance : {action.dueDate}</p>}
                     </li>
@@ -492,6 +532,24 @@ const KpiDetailPage = () => {
                   />
                 </div>
                 <div className="field">
+                  <label htmlFor="action-owner">Responsable</label>
+                  <select
+                    id="action-owner"
+                    value={actionForm.ownerId}
+                    onChange={(e) => setActionForm((prev) => ({ ...prev, ownerId: e.target.value }))}
+                  >
+                    <option value="">Moi</option>
+                    {(usersQuery.data ?? []).map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.fullName}
+                      </option>
+                    ))}
+                  </select>
+                  {usersQuery.isError && (
+                    <p className="error-text">Impossible de charger les membres pour l&apos;assignation.</p>
+                  )}
+                </div>
+                <div className="field">
                   <label htmlFor="action-due">Échéance</label>
                   <input
                     id="action-due"
@@ -499,6 +557,32 @@ const KpiDetailPage = () => {
                     value={actionForm.dueDate}
                     onChange={(e) => setActionForm((prev) => ({ ...prev, dueDate: e.target.value }))}
                   />
+                </div>
+                <div className="field">
+                  <label htmlFor="action-progress">Avancement (%)</label>
+                  <input
+                    id="action-progress"
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={actionForm.progress}
+                    onChange={(e) => setActionForm((prev) => ({ ...prev, progress: e.target.value }))}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor="action-status">Statut</label>
+                  <select
+                    id="action-status"
+                    value={actionForm.status}
+                    onChange={(e) =>
+                      setActionForm((prev) => ({ ...prev, status: e.target.value as ActionItem['status'] }))
+                    }
+                  >
+                    <option value="OPEN">{actionStatusLabel.OPEN}</option>
+                    <option value="IN_PROGRESS">{actionStatusLabel.IN_PROGRESS}</option>
+                    <option value="DONE">{actionStatusLabel.DONE}</option>
+                    <option value="CANCELLED">{actionStatusLabel.CANCELLED}</option>
+                  </select>
                 </div>
                 <Button type="submit" disabled={addActionMutation.isPending}>
                   {addActionMutation.isPending ? 'Ajout...' : 'Créer une action'}

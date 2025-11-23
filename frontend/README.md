@@ -35,5 +35,5 @@ npm run preview
 - `src/api` : clients API + mode démo (données locales).
 - `src/app` : layout, routing protégé, auth provider.
 - `src/components` : UI de base (Button, Card, Table, BadgeStatus).
-- `src/pages` : écrans du parcours manager (dont la page détail KPI avec un graphique d'évolution Chart.js interactif qui met en évidence les périodes avec actions/commentaires).
+- `src/pages` : écrans du parcours manager (dont la page détail KPI avec un graphique d'évolution Chart.js interactif qui met en évidence les périodes avec actions/commentaires, et une gestion des plans d’action assignés à des membres avec avancement et statut).
 - `src/styles` : thème noir & blanc et styles globaux.

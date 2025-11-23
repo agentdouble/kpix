@@ -40,7 +40,14 @@ export const actionsApi = {
   },
   create: async (
     kpiId: string,
-    payload: { title: string; description?: string; dueDate?: string; progress?: number },
+    payload: {
+      title: string;
+      description?: string;
+      dueDate?: string;
+      ownerId?: string;
+      progress?: number;
+      status?: ActionItem['status'];
+    },
     token?: string | null,
   ): Promise<ActionItem> => {
     if (USE_DEMO_DATA) {
@@ -49,6 +56,8 @@ export const actionsApi = {
         description: payload.description,
         dueDate: payload.dueDate,
         progress: payload.progress,
+        ownerId: payload.ownerId,
+        status: payload.status,
       });
     }
     const data = await request<ApiAction>(`/kpis/${kpiId}/actions`, {
@@ -56,8 +65,10 @@ export const actionsApi = {
       body: {
         title: payload.title,
         description: payload.description,
+        owner_id: payload.ownerId,
         due_date: payload.dueDate,
         progress: payload.progress ?? 0,
+        status: payload.status ?? 'OPEN',
       },
       token: token ?? undefined,
     });

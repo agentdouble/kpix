@@ -15,7 +15,7 @@ import type {
 const now = new Date().toISOString();
 const orgId = 'org-demo';
 
-const demoUser: User = {
+export const demoUser: User = {
   id: 'user-1',
   email: 'manager@kpix-demo.com',
   fullName: 'Demo Manager',
@@ -222,6 +222,10 @@ const computeStatus = (direction: KpiDirection, thresholds: { green: number; ora
   return 'RED';
 };
 
+export const demoUsers = {
+  list: async (): Promise<User[]> => [demoUser],
+};
+
 const latestStatuses = (): Record<string, KpiStatus> => {
   const latest: Record<string, KpiStatus> = {};
   kpiValues
@@ -372,7 +376,14 @@ export const demoActions = {
   list: async (kpiId: string): Promise<ActionItem[]> => actions.filter((action) => action.kpiId === kpiId),
   create: async (
     kpiId: string,
-    payload: { title: string; description?: string; dueDate?: string; progress?: number },
+    payload: {
+      title: string;
+      description?: string;
+      dueDate?: string;
+      ownerId?: string;
+      progress?: number;
+      status?: ActionItem['status'];
+    },
   ): Promise<ActionItem> => {
     const action: ActionItem = {
       id: makeId(),
@@ -380,10 +391,10 @@ export const demoActions = {
       organizationId: orgId,
       title: payload.title,
       description: payload.description,
-      ownerId: demoUser.id,
+      ownerId: payload.ownerId ?? demoUser.id,
       dueDate: payload.dueDate,
       progress: payload.progress ?? 0,
-      status: 'OPEN',
+      status: payload.status ?? 'OPEN',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
