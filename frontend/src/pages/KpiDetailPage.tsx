@@ -112,7 +112,18 @@ const KpiDetailPage = () => {
 
   const values = valuesQuery.data ?? [];
   const chartValues = useMemo(() => values.slice(0, 8), [values]);
-  const maxValue = useMemo(() => (chartValues.length > 0 ? Math.max(...chartValues.map((v) => v.value)) : 1), [chartValues]);
+  const chartValuesChrono = useMemo(
+    () =>
+      [...chartValues].sort((a, b) => {
+        if (!a.periodStart || !b.periodStart) return 0;
+        return a.periodStart.localeCompare(b.periodStart);
+      }),
+    [chartValues],
+  );
+  const maxValue = useMemo(
+    () => (chartValuesChrono.length > 0 ? Math.max(...chartValuesChrono.map((v) => v.value)) : 1),
+    [chartValuesChrono],
+  );
   const latestValue = values[0];
 
   if (kpiQuery.isLoading) {
@@ -142,14 +153,14 @@ const KpiDetailPage = () => {
       </div>
 
       <Card title="Graphique d'évolution">
-        {chartValues.length === 0 && <p className="muted">Pas encore de valeurs.</p>}
-        {chartValues.length > 0 && (
+        {chartValuesChrono.length === 0 && <p className="muted">Pas encore de valeurs.</p>}
+        {chartValuesChrono.length > 0 && (
           <div style={{ minHeight: '180px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="150">
               <line x1="0" y1="100" x2="100" y2="100" stroke="#d0d0d0" strokeWidth="1" />
               {(() => {
-                const points = chartValues.map((value, index) => {
-                  const x = chartValues.length === 1 ? 50 : (index / (chartValues.length - 1)) * 100;
+                const points = chartValuesChrono.map((value, index) => {
+                  const x = chartValuesChrono.length === 1 ? 50 : (index / (chartValuesChrono.length - 1)) * 100;
                   const y = 100 - (value.value / maxValue) * 100;
                   return { x, y, value };
                 });
@@ -172,7 +183,7 @@ const KpiDetailPage = () => {
               })()}
             </svg>
             <div style={{ display: 'flex', gap: '12px' }}>
-              {chartValues.map((value) => (
+              {chartValuesChrono.map((value) => (
                 <div key={value.id} style={{ flex: 1, textAlign: 'center' }}>
                   <div style={{ fontWeight: 700 }}>{value.value}</div>
                   <p className="muted" style={{ marginTop: '4px', fontSize: '13px' }}>
