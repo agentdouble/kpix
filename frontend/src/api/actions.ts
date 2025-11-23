@@ -74,4 +74,33 @@ export const actionsApi = {
     });
     return mapAction(data);
   },
+  update: async (
+    actionId: string,
+    payload: {
+      title?: string;
+      description?: string;
+      ownerId?: string | null;
+      dueDate?: string | null;
+      progress?: number;
+      status?: ActionItem['status'];
+    },
+    token?: string | null,
+  ): Promise<ActionItem> => {
+    if (USE_DEMO_DATA) {
+      return demoActions.update(actionId, payload);
+    }
+    const data = await request<ApiAction>(`/actions/${actionId}`, {
+      method: 'PATCH',
+      body: {
+        title: payload.title,
+        description: payload.description,
+        owner_id: payload.ownerId,
+        due_date: payload.dueDate,
+        progress: payload.progress,
+        status: payload.status,
+      },
+      token: token ?? undefined,
+    });
+    return mapAction(data);
+  },
 };

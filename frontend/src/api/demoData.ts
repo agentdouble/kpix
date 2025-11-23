@@ -401,6 +401,37 @@ export const demoActions = {
     actions = [...actions, action];
     return action;
   },
+  update: async (
+    actionId: string,
+    payload: {
+      title?: string;
+      description?: string;
+      ownerId?: string | null;
+      dueDate?: string | null;
+      progress?: number;
+      status?: ActionItem['status'];
+    },
+  ): Promise<ActionItem> => {
+    actions = actions.map((action) =>
+      action.id === actionId
+        ? {
+            ...action,
+            title: payload.title ?? action.title,
+            description: payload.description ?? action.description,
+            ownerId: payload.ownerId ?? action.ownerId,
+            dueDate: payload.dueDate ?? action.dueDate,
+            progress: payload.progress ?? action.progress,
+            status: payload.status ?? action.status,
+            updatedAt: new Date().toISOString(),
+          }
+        : action,
+    );
+    const updated = actions.find((action) => action.id === actionId);
+    if (!updated) {
+      throw new Error('Action introuvable');
+    }
+    return updated;
+  },
 };
 
 export const demoComments = {

@@ -102,6 +102,18 @@ const KpiDetailPage = () => {
   });
   const [commentForm, setCommentForm] = useState({ message: '' });
   const [activeTab, setActiveTab] = useState<'value' | 'action' | 'comment'>('value');
+  const [editActionId, setEditActionId] = useState<string | null>(null);
+  const [editActionForm, setEditActionForm] = useState<{
+    ownerId: string;
+    dueDate: string;
+    progress: string;
+    status: ActionItem['status'];
+  }>({
+    ownerId: '',
+    dueDate: '',
+    progress: '',
+    status: 'OPEN',
+  });
 
   const addValueMutation = useMutation({
     mutationFn: () =>
@@ -145,6 +157,22 @@ const KpiDetailPage = () => {
         progress: '0',
         status: 'OPEN',
       });
+    },
+  });
+
+  const updateActionMutation = useMutation({
+    mutationFn: (params: {
+      actionId: string;
+      updates: {
+        ownerId?: string | null;
+        dueDate?: string | null;
+        progress?: number;
+        status?: ActionItem['status'];
+      };
+    }) => actionsApi.update(params.actionId, params.updates, token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kpi-actions', kpiId] });
+      setEditActionId(null);
     },
   });
 
@@ -499,6 +527,116 @@ const KpiDetailPage = () => {
                       })()}
                       {action.description && <p className="muted">{action.description}</p>}
                       {action.dueDate && <p className="muted">Échéance : {action.dueDate}</p>}
+                      <button
+                        type="button"
+                        className="pill"
+                        style={{ marginTop: '8px', cursor: 'pointer' }}
+                        onClick={() => {
+                          setEditActionId(action.id);
+                          setEditActionForm({
+                            ownerId: action.ownerId ?? '',
+                            dueDate: action.dueDate ?? '',
+                            progress: String(action.progress),
+                            status: action.status,
+                          });
+                        }}
+                      >
+                        Mettre à jour
+                      </button>
+                      {editActionId === action.id && (
+                        <form
+                          className="grid"
+                          style={{ gap: '8px', marginTop: '10px' }}
+                          onSubmit={(e: FormEvent) => {
+                            e.preventDefault();
+                            updateActionMutation.mutate({
+                              actionId: action.id,
+                              updates: {
+                                ownerId: editActionForm.ownerId || null,
+                                dueDate: editActionForm.dueDate || null,
+                                progress:
+                                  editActionForm.progress === '' ? undefined : Number(editActionForm.progress),
+                                status: editActionForm.status,
+                              },
+                            });
+                          }}
+                        >
+                          <div className="field">
+                            <label htmlFor={`edit-owner-${action.id}`}>Responsable</label>
+                            <select
+                              id={`edit-owner-${action.id}`}
+                              value={editActionForm.ownerId}
+                              onChange={(e) =>
+                                setEditActionForm((prev) => ({ ...prev, ownerId: e.target.value }))
+                              }
+                            >
+                              <option value="">(inchangé)</option>
+                              {(usersQuery.data ?? []).map((member) => (
+                                <option key={member.id} value={member.id}>
+                                  {member.fullName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`edit-due-${action.id}`}>Échéance</label>
+                            <input
+                              id={`edit-due-${action.id}`}
+                              type="date"
+                              value={editActionForm.dueDate}
+                              onChange={(e) =>
+                                setEditActionForm((prev) => ({ ...prev, dueDate: e.target.value }))
+                              }
+                            />
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`edit-progress-${action.id}`}>Avancement (%)</label>
+                            <input
+                              id={`edit-progress-${action.id}`}
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={editActionForm.progress}
+                              onChange={(e) =>
+                                setEditActionForm((prev) => ({ ...prev, progress: e.target.value }))
+                              }
+                            />
+                          </div>
+                          <div className="field">
+                            <label htmlFor={`edit-status-${action.id}`}>Statut</label>
+                            <select
+                              id={`edit-status-${action.id}`}
+                              value={editActionForm.status}
+                              onChange={(e) =>
+                                setEditActionForm((prev) => ({
+                                  ...prev,
+                                  status: e.target.value as ActionItem['status'],
+                                }))
+                              }
+                            >
+                              <option value="OPEN">{actionStatusLabel.OPEN}</option>
+                              <option value="IN_PROGRESS">{actionStatusLabel.IN_PROGRESS}</option>
+                              <option value="DONE">{actionStatusLabel.DONE}</option>
+                              <option value="CANCELLED">{actionStatusLabel.CANCELLED}</option>
+                            </select>
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                            <Button type="submit" disabled={updateActionMutation.isPending}>
+                              {updateActionMutation.isPending ? 'Enregistrement...' : 'Enregistrer'}
+                            </Button>
+                            <button
+                              type="button"
+                              className="button ghost"
+                              onClick={() => setEditActionId(null)}
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                          {updateActionMutation.isError && (
+                            <p className="error-text">Impossible de mettre à jour l&apos;action.</p>
+                          )}
+                        </form>
+                      )}
                     </li>
                   ))}
                 </ul>
