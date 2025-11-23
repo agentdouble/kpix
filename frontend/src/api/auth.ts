@@ -63,4 +63,28 @@ export const authApi = {
     const response = await request<ApiUser>('/auth/me', { token });
     return mapUser(response);
   },
+  signup: async (params: {
+    email: string;
+    password: string;
+    fullName: string;
+    organizationName: string;
+  }): Promise<LoginResponse> => {
+    if (USE_DEMO_DATA) {
+      throw new Error('La création de compte est désactivée en mode démo.');
+    }
+    const response = await request<TokenResponse>('/auth/signup', {
+      method: 'POST',
+      body: {
+        email: params.email,
+        password: params.password,
+        full_name: params.fullName,
+        organization_name: params.organizationName,
+      },
+    });
+    return {
+      accessToken: response.access_token,
+      refreshToken: response.refresh_token,
+      user: mapUser(response.user),
+    };
+  },
 };
