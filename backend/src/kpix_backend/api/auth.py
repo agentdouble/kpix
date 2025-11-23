@@ -5,6 +5,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from kpix_backend.core.config import Settings
 from kpix_backend.core.deps import get_app_settings, get_current_user
@@ -37,7 +38,7 @@ async def _issue_tokens(user: User, settings: Settings) -> TokenResponse:
     return TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token,
-        user=UserPublic.model_validate(user),
+        user=UserPublic.from_model(user),
     )
 
 
@@ -62,7 +63,7 @@ async def signup(
     )
     session.add_all([organization, user])
     await session.commit()
-    await session.refresh(user)
+    await session.refresh(user, attribute_names=["organization"])
     logger.info("user_signup", extra={"user_id": str(user.id), "organization_id": str(user.organization_id)})
     return await _issue_tokens(user, settings)
 
@@ -73,7 +74,11 @@ async def login(
     session: AsyncSession = Depends(get_session),
     settings: Settings = Depends(get_app_settings),
 ) -> TokenResponse:
-    result = await session.execute(select(User).where(User.email == payload.email))
+    result = await session.execute(
+        select(User)
+        .options(selectinload(User.organization))
+        .where(User.email == payload.email)
+    )
     user = result.scalar_one_or_none()
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
@@ -114,4 +119,4 @@ async def refresh(
 
 @router.get("/me", response_model=UserPublic)
 async def me(current_user: User = Depends(get_current_user)) -> UserPublic:
-    return UserPublic.model_validate(current_user)
+    return UserPublic.from_model(current_user, include_org=False)
