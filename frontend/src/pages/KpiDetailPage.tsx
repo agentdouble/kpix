@@ -30,6 +30,12 @@ const actionStatusLabel = {
   CANCELLED: 'Annulé',
 } as const;
 
+const statusColor = (status: KpiValue['status']) => {
+  if (status === 'GREEN') return '#16a34a';
+  if (status === 'ORANGE') return '#ea580c';
+  return '#dc2626';
+};
+
 const formatPeriod = (value: KpiValue) => {
   if (value.periodStart === value.periodEnd) {
     return value.periodStart;
@@ -175,7 +181,15 @@ const KpiDetailPage = () => {
                       strokeLinecap="round"
                     />
                     {points.map((p) => (
-                      <circle key={p.value.id} cx={p.x} cy={p.y} r={1.8} fill="#000000" />
+                      <circle
+                        key={p.value.id}
+                        cx={p.x}
+                        cy={p.y}
+                        r={2}
+                        fill={statusColor(p.value.status)}
+                        stroke="#000000"
+                        strokeWidth="0.4"
+                      />
                     ))}
                   </>
                 );
@@ -184,7 +198,7 @@ const KpiDetailPage = () => {
             <div style={{ display: 'flex', gap: '12px' }}>
               {chartValuesChrono.map((value) => (
                 <div key={value.id} style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ fontWeight: 700 }}>{value.value}</div>
+                  <div style={{ fontWeight: 700, color: statusColor(value.status) }}>{value.value}</div>
                   <p className="muted" style={{ marginTop: '4px', fontSize: '13px' }}>
                     {formatPeriod(value)}
                   </p>
