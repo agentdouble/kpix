@@ -66,7 +66,7 @@ const KpiDetailPage = () => {
     enabled: Boolean(kpiId),
   });
 
-  const [valueForm, setValueForm] = useState({ periodStart: '', periodEnd: '', value: '', comment: '' });
+  const [valueForm, setValueForm] = useState({ periodStart: '', value: '', comment: '' });
   const [actionForm, setActionForm] = useState({ title: '', description: '', dueDate: '' });
   const [commentForm, setCommentForm] = useState({ message: '' });
 
@@ -76,7 +76,6 @@ const KpiDetailPage = () => {
         kpiId!,
         {
           periodStart: valueForm.periodStart,
-          periodEnd: valueForm.periodEnd || undefined,
           value: Number(valueForm.value),
           comment: valueForm.comment || undefined,
         },
@@ -85,7 +84,7 @@ const KpiDetailPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kpi-values', kpiId] });
       queryClient.invalidateQueries({ queryKey: ['kpi', kpiId] });
-      setValueForm({ periodStart: '', periodEnd: '', value: '', comment: '' });
+      setValueForm({ periodStart: '', value: '', comment: '' });
     },
   });
 
@@ -228,22 +227,13 @@ const KpiDetailPage = () => {
             }}
           >
             <div className="field">
-              <label htmlFor="period-start">Début de période</label>
+              <label htmlFor="period-start">Date</label>
               <input
                 id="period-start"
                 type="date"
                 value={valueForm.periodStart}
                 onChange={(e) => setValueForm((prev) => ({ ...prev, periodStart: e.target.value }))}
                 required
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="period-end">Fin de période (optionnel)</label>
-              <input
-                id="period-end"
-                type="date"
-                value={valueForm.periodEnd}
-                onChange={(e) => setValueForm((prev) => ({ ...prev, periodEnd: e.target.value }))}
               />
             </div>
             <div className="field">
