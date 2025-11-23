@@ -3,6 +3,9 @@ import type {
   Comment,
   Dashboard,
   DashboardOverview,
+  DirectionActionSummary,
+  DirectionKpiSnapshot,
+  DirectionKpiTrend,
   ImportJob,
   Kpi,
   KpiDirection,
@@ -490,5 +493,227 @@ export const demoReporting = {
         overdueActions,
       };
     });
+  },
+
+  direction: async (): Promise<{
+    topRedKpis: DirectionKpiSnapshot[];
+    overdueActions: DirectionActionSummary[];
+    latestValues: DirectionKpiSnapshot[];
+    improvingKpis: DirectionKpiTrend[];
+    worseningKpis: DirectionKpiTrend[];
+    upcomingActions48h: DirectionActionSummary[];
+    upcomingActions7d: DirectionActionSummary[];
+    strategicKpis: DirectionKpiSnapshot[];
+    closedActionsThisWeek: DirectionActionSummary[];
+  }> => {
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const inDays = (days: number) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
+    };
+
+    const latestValueForKpi = (kpiId: string): KpiValue | undefined =>
+      kpiValues
+        .filter((value) => value.kpiId === kpiId)
+        .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
+
+    const latestTwoValuesForKpi = (kpiId: string): KpiValue[] =>
+      kpiValues
+        .filter((value) => value.kpiId === kpiId)
+        .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))
+        .slice(0, 2);
+
+    const latestStatusesMap = latestStatuses();
+
+    const topRedKpis: DirectionKpiSnapshot[] = [];
+    kpis.forEach((kpi) => {
+      const last = latestValueForKpi(kpi.id);
+      if (!last || latestStatusesMap[kpi.id] !== 'RED') {
+        return;
+      }
+      const dashboard = dashboards.find((d) => d.id === kpi.dashboardId);
+      if (!dashboard) {
+        return;
+      }
+      topRedKpis.push({
+        kpiId: kpi.id,
+        dashboardId: dashboard.id,
+        dashboardTitle: dashboard.title,
+        name: kpi.name,
+        status: last.status,
+        value: last.value,
+        periodEnd: last.periodEnd,
+      });
+    });
+    topRedKpis.sort((a, b) => ((a.periodEnd ?? '') < (b.periodEnd ?? '') ? 1 : -1));
+    topRedKpis.splice(5);
+
+    const latestValues: DirectionKpiSnapshot[] = kpiValues
+      .slice()
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, 20)
+      .map((value) => {
+        const kpi = kpis.find((k) => k.id === value.kpiId);
+        if (!kpi) {
+          throw new Error('KPI introuvable pour la valeur');
+        }
+        const dashboard = dashboards.find((d) => d.id === kpi.dashboardId);
+        if (!dashboard) {
+          throw new Error('Dashboard introuvable pour la valeur');
+        }
+        return {
+          kpiId: kpi.id,
+          dashboardId: dashboard.id,
+          dashboardTitle: dashboard.title,
+          name: kpi.name,
+          status: value.status,
+          value: value.value,
+          periodEnd: value.periodEnd,
+        };
+      });
+
+    const trends: DirectionKpiTrend[] = kpis
+      .map((kpi) => {
+        const [current, previous] = latestTwoValuesForKpi(kpi.id);
+        if (!current || !previous) {
+          return null;
+        }
+        const dashboard = dashboards.find((d) => d.id === kpi.dashboardId);
+        if (!dashboard) return null;
+        const rawDelta = current.value - previous.value;
+        const deltaNormalized =
+          kpi.direction === 'UP_IS_BETTER' ? rawDelta : previous.value - current.value;
+        return {
+          kpiId: kpi.id,
+          dashboardId: dashboard.id,
+          dashboardTitle: dashboard.title,
+          name: kpi.name,
+          direction: kpi.direction,
+          currentValue: current.value,
+          previousValue: previous.value,
+          currentStatus: current.status,
+          previousStatus: previous.status,
+          delta: rawDelta,
+          deltaNormalized,
+        } as DirectionKpiTrend;
+      })
+      .filter(Boolean) as DirectionKpiTrend[];
+
+    const improvingKpis = trends
+      .filter((trend) => trend.deltaNormalized !== null && (trend.deltaNormalized ?? 0) > 0)
+      .sort((a, b) => (b.deltaNormalized ?? 0) - (a.deltaNormalized ?? 0))
+      .slice(0, 3);
+
+    const worseningKpis = trends
+      .filter((trend) => trend.deltaNormalized !== null && (trend.deltaNormalized ?? 0) < 0)
+      .sort((a, b) => (a.deltaNormalized ?? 0) - (b.deltaNormalized ?? 0))
+      .slice(0, 3);
+
+    const overdueActions: DirectionActionSummary[] = actions
+      .filter((action) => action.dueDate && action.dueDate < todayStr && ['OPEN', 'IN_PROGRESS'].includes(action.status))
+      .map((action) => {
+        const kpi = kpis.find((k) => k.id === action.kpiId);
+        if (!kpi) throw new Error('KPI introuvable pour action');
+        const dashboard = dashboards.find((d) => d.id === kpi.dashboardId);
+        if (!dashboard) throw new Error('Dashboard introuvable pour action');
+        return {
+          actionId: action.id,
+          kpiId: kpi.id,
+          kpiName: kpi.name,
+          dashboardId: dashboard.id,
+          dashboardTitle: dashboard.title,
+          title: action.title,
+          status: action.status,
+          dueDate: action.dueDate ?? null,
+          updatedAt: action.updatedAt,
+        };
+      })
+      .sort((a, b) => ((a.dueDate ?? '') < (b.dueDate ?? '') ? -1 : 1));
+
+    const upcomingActions48h: DirectionActionSummary[] = actions
+      .filter((action) => {
+        if (!action.dueDate || !['OPEN', 'IN_PROGRESS'].includes(action.status)) return false;
+        return action.dueDate >= todayStr && action.dueDate <= inDays(2);
+      })
+      .map((action) => {
+        const kpi = kpis.find((k) => k.id === action.kpiId);
+        if (!kpi) throw new Error('KPI introuvable pour action');
+        const dashboard = dashboards.find((d) => d.id === kpi.dashboardId);
+        if (!dashboard) throw new Error('Dashboard introuvable pour action');
+        return {
+          actionId: action.id,
+          kpiId: kpi.id,
+          kpiName: kpi.name,
+          dashboardId: dashboard.id,
+          dashboardTitle: dashboard.title,
+          title: action.title,
+          status: action.status,
+          dueDate: action.dueDate ?? null,
+          updatedAt: action.updatedAt,
+        };
+      });
+
+    const upcomingActions7d: DirectionActionSummary[] = actions
+      .filter((action) => {
+        if (!action.dueDate || !['OPEN', 'IN_PROGRESS'].includes(action.status)) return false;
+        return action.dueDate > inDays(2) && action.dueDate <= inDays(7);
+      })
+      .map((action) => {
+        const kpi = kpis.find((k) => k.id === action.kpiId);
+        if (!kpi) throw new Error('KPI introuvable pour action');
+        const dashboard = dashboards.find((d) => d.id === kpi.dashboardId);
+        if (!dashboard) throw new Error('Dashboard introuvable pour action');
+        return {
+          actionId: action.id,
+          kpiId: kpi.id,
+          kpiName: kpi.name,
+          dashboardId: dashboard.id,
+          dashboardTitle: dashboard.title,
+          title: action.title,
+          status: action.status,
+          dueDate: action.dueDate ?? null,
+          updatedAt: action.updatedAt,
+        };
+      });
+
+    const weekAgo = new Date();
+    weekAgo.setDate(today.getDate() - 7);
+    const weekAgoStr = weekAgo.toISOString();
+
+    const closedActionsThisWeek: DirectionActionSummary[] = actions
+      .filter((action) => action.status === 'DONE' && action.updatedAt >= weekAgoStr)
+      .map((action) => {
+        const kpi = kpis.find((k) => k.id === action.kpiId);
+        if (!kpi) throw new Error('KPI introuvable pour action');
+        const dashboard = dashboards.find((d) => d.id === kpi.dashboardId);
+        if (!dashboard) throw new Error('Dashboard introuvable pour action');
+        return {
+          actionId: action.id,
+          kpiId: kpi.id,
+          kpiName: kpi.name,
+          dashboardId: dashboard.id,
+          dashboardTitle: dashboard.title,
+          title: action.title,
+          status: action.status,
+          dueDate: action.dueDate ?? null,
+          updatedAt: action.updatedAt,
+        };
+      });
+
+    const strategicKpis: DirectionKpiSnapshot[] = [];
+
+    return {
+      topRedKpis,
+      overdueActions,
+      latestValues,
+      improvingKpis,
+      worseningKpis,
+      upcomingActions48h,
+      upcomingActions7d,
+      strategicKpis,
+      closedActionsThisWeek,
+    };
   },
 };

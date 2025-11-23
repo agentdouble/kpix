@@ -6,7 +6,6 @@ import DashboardsListPage from './pages/DashboardsListPage';
 import ImportsPage from './pages/ImportsPage';
 import KpiDetailPage from './pages/KpiDetailPage';
 import LoginPage from './pages/LoginPage';
-import OverviewPage from './pages/OverviewPage';
 import SignUpPage from './pages/SignUpPage';
 
 function App() {
@@ -25,7 +24,6 @@ function App() {
         <Route path="/dashboards" element={<DashboardsListPage />} />
         <Route path="/dashboards/:dashboardId" element={<DashboardDetailPage />} />
         <Route path="/kpis/:kpiId" element={<KpiDetailPage />} />
-        <Route path="/overview" element={<OverviewPage />} />
         <Route path="/imports" element={<ImportsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboards" replace />} />

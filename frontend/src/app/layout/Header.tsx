@@ -2,11 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import Button from '../../components/Button';
 import { isDemoMode, useAuth } from '../auth';
 
-const navItems = [
-  { to: '/dashboards', label: 'Tableaux de bord' },
-  { to: '/overview', label: 'Vue direction' },
-  { to: '/imports', label: 'Imports' },
-];
+const navItems = [{ to: '/dashboards', label: 'Tableaux de bord' }, { to: '/imports', label: 'Imports' }];
 
 const Header = () => {
   const { user, logout } = useAuth();

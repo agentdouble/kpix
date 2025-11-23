@@ -251,6 +251,7 @@ Notation : préfixe `/api/v1`.
 ### 5.8. Vue direction / reporting
 - `GET /api/v1/reporting/overview` – synthèse par dashboard/process
 - `GET /api/v1/reporting/top-risks` – KPIs en rouge/orange
+- `GET /api/v1/reporting/direction` – vue Direction (top KPIs rouges, tendances, actions clés)
 
 ---
 
@@ -312,4 +313,3 @@ Notation : préfixe `/api/v1`.
   - migrations DB (ex : Alembic),
   - fixtures minimales pour tests,
   - tests unitaires sur les règles métier critiques (calcul statut KPI).
-

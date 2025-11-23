@@ -210,7 +210,6 @@ Arborescence logique :
     - `DashboardsListPage.tsx`
     - `DashboardDetailPage.tsx`
     - `KpiDetailPage.tsx`
-    - `OverviewPage.tsx`
     - `ImportsPage.tsx` (optionnel MVP)
   - `components/`
     - `Button.tsx`
@@ -258,7 +257,7 @@ Principes :
   - section commentaires.
 
 ### Itération F5 – Vue direction & imports
-- Implémenter la vue `overview` (synthèse direction).
+- Intégrer la synthèse direction dans `DashboardsListPage.tsx` (colonnes KPIs + Actions).
 - Implémenter une première version de la page d’import (si le backend est prêt).
 
 ---
@@ -270,4 +269,3 @@ Principes :
 - S’assurer que l’app est utilisable au clavier (tabulation, focus visibles).
 - Prévoir une configuration d’environnement (`.env`) pour l’URL de l’API backend.
 - Minimiser l’usage de bibliothèques lourdes (notamment graphiques) et commencer avec des solutions simples ; n’ajouter qu’en cas de besoin.
-
