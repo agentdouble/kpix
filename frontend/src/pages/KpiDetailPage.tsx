@@ -117,6 +117,8 @@ const KpiDetailPage = () => {
   });
 
   const values = valuesQuery.data ?? [];
+  const actions = actionsQuery.data ?? [];
+  const comments = commentsQuery.data ?? [];
   const chartValues = useMemo(() => values.slice(0, 8), [values]);
   const chartValuesChrono = useMemo(
     () =>
@@ -126,11 +128,51 @@ const KpiDetailPage = () => {
       }),
     [chartValues],
   );
-  const maxValue = useMemo(
-    () => (chartValuesChrono.length > 0 ? Math.max(...chartValuesChrono.map((v) => v.value)) : 1),
-    [chartValuesChrono],
-  );
+  const valueRange = useMemo(() => {
+    if (chartValuesChrono.length === 0) {
+      return { min: 0, max: 1 };
+    }
+    const vals = chartValuesChrono.map((v) => v.value);
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    if (min === max) {
+      const base = min === 0 ? 0 : min - 1;
+      return { min: base, max: max + 1 };
+    }
+    const padding = (max - min) * 0.1;
+    return { min: min - padding, max: max + padding };
+  }, [chartValuesChrono]);
   const latestValue = values[0];
+  const [hoveredValueId, setHoveredValueId] = useState<string | null>(null);
+
+  const getEventCountsForPeriod = (periodStart: string, periodEnd: string) => {
+    if (!periodStart || !periodEnd) {
+      return { actionsCount: 0, commentsCount: 0 };
+    }
+
+    const isWithin = (dateString: string) => {
+      if (!dateString) return false;
+      const day = dateString.slice(0, 10);
+      return day >= periodStart && day <= periodEnd;
+    };
+
+    let actionsCount = 0;
+    let commentsCount = 0;
+
+    for (const action of actions) {
+      if (isWithin(action.createdAt)) {
+        actionsCount += 1;
+      }
+    }
+
+    for (const comment of comments) {
+      if (comment.kpiId === kpiId && isWithin(comment.createdAt)) {
+        commentsCount += 1;
+      }
+    }
+
+    return { actionsCount, commentsCount };
+  };
 
   if (kpiQuery.isLoading) {
     return <p className="muted">Chargement du KPI...</p>;
@@ -163,39 +205,136 @@ const KpiDetailPage = () => {
         {chartValuesChrono.length > 0 && (
           <div style={{ minHeight: '180px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <svg viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="150">
-              <line x1="0" y1="100" x2="100" y2="100" stroke="#d0d0d0" strokeWidth="1" />
               {(() => {
+                const paddingX = 6;
+                const paddingTop = 10;
+                const paddingBottom = 18;
+                const chartWidth = 100 - paddingX * 2;
+                const chartHeight = 100 - paddingTop - paddingBottom;
+                const { min, max } = valueRange;
+                const range = max - min || 1;
+
                 const points = chartValuesChrono.map((value, index) => {
-                  const x = chartValuesChrono.length === 1 ? 50 : (index / (chartValuesChrono.length - 1)) * 100;
-                  const y = 100 - (value.value / maxValue) * 100;
-                  return { x, y, value };
+                  const t = chartValuesChrono.length === 1 ? 0.5 : index / (chartValuesChrono.length - 1);
+                  const x = paddingX + t * chartWidth;
+                  const normalized = (value.value - min) / range;
+                  const y = paddingTop + (1 - normalized) * chartHeight;
+                  const { actionsCount, commentsCount } = getEventCountsForPeriod(
+                    value.periodStart,
+                    value.periodEnd,
+                  );
+                  return { x, y, value, actionsCount, commentsCount };
                 });
+
+                if (points.length === 0) {
+                  return null;
+                }
+
+                const baselineY = paddingTop + chartHeight;
                 const polylinePoints = points.map((p) => `${p.x},${p.y}`).join(' ');
+
+                const areaPath = [
+                  `M ${points[0].x} ${baselineY}`,
+                  ...points.map((p) => `L ${p.x} ${p.y}`),
+                  `L ${points[points.length - 1].x} ${baselineY}`,
+                  'Z',
+                ].join(' ');
+
                 return (
                   <>
+                    {[0.25, 0.5, 0.75].map((ratio) => {
+                      const y = paddingTop + chartHeight * ratio;
+                      return (
+                        <line
+                          key={ratio}
+                          x1={paddingX}
+                          y1={y}
+                          x2={100 - paddingX}
+                          y2={y}
+                          stroke="#e5e5e5"
+                          strokeWidth="0.4"
+                        />
+                      );
+                    })}
+                    <line
+                      x1={paddingX}
+                      y1={baselineY}
+                      x2={100 - paddingX}
+                      y2={baselineY}
+                      stroke="#d0d0d0"
+                      strokeWidth="0.6"
+                    />
+                    <path d={areaPath} fill="rgba(0,0,0,0.04)" stroke="none" />
                     <polyline
                       points={polylinePoints}
                       fill="none"
-                      stroke="#000000"
-                      strokeWidth="2"
+                      stroke="#111111"
+                      strokeWidth="1.6"
                       strokeLinejoin="round"
                       strokeLinecap="round"
                     />
                     {points.map((p) => (
-                      <circle
-                        key={p.value.id}
-                        cx={p.x}
-                        cy={p.y}
-                        r={2}
-                        fill={statusColor(p.value.status)}
-                        stroke="#000000"
-                        strokeWidth="0.4"
-                      />
+                      <g key={p.value.id}>
+                        {p.actionsCount + p.commentsCount > 0 && (
+                          <rect
+                            x={p.x - 1.6}
+                            y={p.y + 3}
+                            width={3.2}
+                            height={1.4}
+                            fill="#000000"
+                            rx={0.7}
+                          />
+                        )}
+                        <circle
+                          cx={p.x}
+                          cy={p.y}
+                          r={hoveredValueId === p.value.id ? 2.8 : 2}
+                          fill={statusColor(p.value.status)}
+                          stroke="#000000"
+                          strokeWidth="0.4"
+                          style={{ cursor: 'pointer' }}
+                          onMouseEnter={() => setHoveredValueId(p.value.id)}
+                          onMouseLeave={() => setHoveredValueId(null)}
+                        />
+                      </g>
                     ))}
                   </>
                 );
               })()}
             </svg>
+            {(() => {
+              const baseValue =
+                chartValuesChrono.find((value) => value.id === hoveredValueId) ??
+                chartValuesChrono[chartValuesChrono.length - 1];
+
+              if (!baseValue) {
+                return null;
+              }
+
+              const { actionsCount, commentsCount } = getEventCountsForPeriod(
+                baseValue.periodStart,
+                baseValue.periodEnd,
+              );
+
+              return (
+                <div className="muted" style={{ fontSize: '13px' }}>
+                  <strong>{baseValue.value}</strong> {kpi.unit ?? ''} · {formatPeriod(baseValue)}
+                  {(actionsCount > 0 || commentsCount > 0) && (
+                    <>
+                      {' '}
+                      ·{' '}
+                      {actionsCount > 0
+                        ? `${actionsCount} action${actionsCount > 1 ? 's' : ''}`
+                        : '0 action'}
+                      {' · '}
+                      {commentsCount > 0
+                        ? `${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}`
+                        : '0 commentaire'}
+                    </>
+                  )}
+                </div>
+              );
+            })()}
             <div style={{ display: 'flex', gap: '12px' }}>
               {chartValuesChrono.map((value) => (
                 <div key={value.id} style={{ flex: 1, textAlign: 'center' }}>
@@ -203,6 +342,29 @@ const KpiDetailPage = () => {
                   <p className="muted" style={{ marginTop: '4px', fontSize: '13px' }}>
                     {formatPeriod(value)}
                   </p>
+                  {(() => {
+                    const { actionsCount, commentsCount } = getEventCountsForPeriod(
+                      value.periodStart,
+                      value.periodEnd,
+                    );
+                    const hasEvents = actionsCount > 0 || commentsCount > 0;
+
+                    if (!hasEvents) {
+                      return null;
+                    }
+
+                    return (
+                      <p className="muted" style={{ marginTop: '2px', fontSize: '12px' }}>
+                        {actionsCount > 0
+                          ? `${actionsCount} action${actionsCount > 1 ? 's' : ''}`
+                          : '0 action'}
+                        {' · '}
+                        {commentsCount > 0
+                          ? `${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}`
+                          : '0 commentaire'}
+                      </p>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

@@ -35,7 +35,7 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 
 ## Frontend (React + Vite)
 - Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Dashboards / KPI détail / Overview / Imports.
-- La page détail KPI affiche un graphique d'évolution en ligne (line chart) au lieu d'un histogramme, avec les points affichés dans l'ordre chronologique (du plus ancien au plus récent, de gauche à droite) et colorés selon le statut (vert, orange, rouge). Juste sous le graphique, une vue à onglets (`Valeurs` / `Actions` / `Commentaires`) permet soit de gérer l’historique et l’ajout de nouvelles valeurs, soit de gérer les plans d’action, soit de lire et ajouter des commentaires.
+- La page détail KPI affiche un graphique d'évolution en ligne (line chart) avec zone remplie, grille horizontale et mise en avant des périodes où il s'est passé quelque chose (actions, commentaires). Les points sont affichés dans l'ordre chronologique (du plus ancien au plus récent, de gauche à droite) et colorés selon le statut (vert, orange, rouge). Sous le graphique, un récapitulatif par période indique le nombre d'actions et de commentaires liés.
 - Lors de l’ajout d’une valeur, l’utilisateur saisit une seule date (le backend gère la période complète en fonction de la fréquence du KPI).
 - Plan : `frontend/planfrontend.md`.
 - Quickstart (depuis `frontend/`) :
