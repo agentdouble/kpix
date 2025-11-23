@@ -4,9 +4,12 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 
 ## Start everything
 - Assurez-vous qu’un PostgreSQL est accessible (driver async : `postgresql+asyncpg://...`).
-- `./start.sh` applique les migrations, lit `backend/.env` si présent, démarre l’API sur 8000 et le frontend sur 5173.
-- Variables ajustables : `BACKEND_PORT`, `FRONTEND_PORT`, `DATABASE_URL`, `VITE_API_BASE_URL` (défaut `http://localhost:8000/api/v1`), `LLM_MODE` (`api` ou `local`).
-- API docs : `http://localhost:8000/api/docs`. Frontend : `http://localhost:5173`.
+- `./start.sh` applique les migrations, lit `backend/.env` et `frontend/.env` si présents, démarre l’API sur `BACKEND_PORT` (défaut 8000) et le frontend sur `FRONTEND_PORT` (défaut 5173).
+- Ports configurables dans les `.env` :
+  - `backend/.env` : `BACKEND_PORT`, `DATABASE_URL`, `JWT_SECRET_KEY`, `LOG_LEVEL`, `LLM_MODE`, etc.
+  - `frontend/.env` : `FRONTEND_PORT`, `VITE_API_BASE_URL`, `VITE_USE_DEMO_DATA`, etc.
+- `start.sh` dérive automatiquement `VITE_API_BASE_URL` (`http://localhost:${BACKEND_PORT}/api/v1`) et renseigne `CORS_ORIGINS` pour le backend à partir de `FRONTEND_PORT` afin d’éviter les erreurs de CORS.
+- API docs (par défaut) : `http://localhost:8000/api/docs`. Frontend (par défaut) : `http://localhost:5173`.
 - Créez un premier compte admin après le démarrage :  
   `curl -X POST http://localhost:8000/api/v1/auth/signup -H "Content-Type: application/json" -d '{"email":"admin@kpix.test","password":"changeme123","full_name":"Admin","organization_name":"Kpix"}'`
 
