@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import Button from '../components/Button';
@@ -15,6 +15,8 @@ const DashboardsListPage = () => {
   const [title, setTitle] = useState('');
   const [processName, setProcessName] = useState('');
   const [description, setDescription] = useState('');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
 
   const dashboardsQuery = useQuery({
     queryKey: ['dashboards'],
@@ -32,10 +34,17 @@ const DashboardsListPage = () => {
       setTitle('');
       setProcessName('');
       setDescription('');
+      setIsCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: ['dashboards'] });
       queryClient.invalidateQueries({ queryKey: ['reporting-overview'] });
     },
   });
+
+  useEffect(() => {
+    if (isCreateOpen && titleInputRef.current) {
+      titleInputRef.current.focus();
+    }
+  }, [isCreateOpen]);
 
   const dashboards = dashboardsQuery.data ?? [];
   const overviewById =
@@ -51,50 +60,67 @@ const DashboardsListPage = () => {
           <p className="muted">Pilotage</p>
           <h1>Tableaux de bord</h1>
         </div>
-        <Button onClick={() => document.getElementById('title')?.focus()}>Créer un tableau de bord</Button>
+        <Button onClick={() => setIsCreateOpen((prev) => !prev)}>
+          {isCreateOpen ? 'Fermer le panneau' : 'Créer un tableau de bord'}
+        </Button>
       </div>
 
-      <Card title="Ajouter un tableau de bord">
-        <form
-          className="grid two-columns"
-          style={{ gap: '16px' }}
-          onSubmit={(e) => {
-            e.preventDefault();
-            createMutation.mutate();
-          }}
-        >
-          <div className="field">
-            <label htmlFor="title">Titre</label>
-            <input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </div>
-          <div className="field">
-            <label htmlFor="process">Process</label>
-            <input id="process" value={processName} onChange={(e) => setProcessName(e.target.value)} required />
-          </div>
-          <div className="field" style={{ gridColumn: '1 / -1' }}>
-            <label htmlFor="description">Description</label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Contexte rapide"
-            />
-          </div>
-          <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px' }}>
-            <Button type="submit" disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Création...' : 'Créer'}
-            </Button>
-          </div>
-        </form>
-        {createMutation.isError && <p className="error-text">Impossible de créer le tableau de bord.</p>}
-      </Card>
+      {isCreateOpen && (
+        <Card title="Ajouter un tableau de bord">
+          <form
+            className="grid two-columns"
+            style={{ gap: '16px' }}
+            onSubmit={(e) => {
+              e.preventDefault();
+              createMutation.mutate();
+            }}
+          >
+            <div className="field">
+              <label htmlFor="title">Titre</label>
+              <input
+                id="title"
+                ref={titleInputRef}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="process">Process</label>
+              <input id="process" value={processName} onChange={(e) => setProcessName(e.target.value)} required />
+            </div>
+            <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <label htmlFor="description">Description</label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Contexte rapide"
+              />
+            </div>
+            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '12px' }}>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? 'Création...' : 'Créer'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsCreateOpen(false)}
+              >
+                Annuler
+              </Button>
+            </div>
+          </form>
+          {createMutation.isError && <p className="error-text">Impossible de créer le tableau de bord.</p>}
+        </Card>
+      )}
 
       <Card title="Liste">
         {dashboardsQuery.isLoading && <p className="muted">Chargement...</p>}
         {dashboardsQuery.isError && <p className="error-text">Erreur lors du chargement des tableaux.</p>}
         {!dashboardsQuery.isLoading && dashboards.length === 0 && <p>Aucun tableau de bord pour le moment.</p>}
         {dashboards.length > 0 && (
-          <Table headers={["Titre", "Process", "Statut global", "Actions"]}>
+          <Table headers={["Titre", "Process", "KPIs", "Actions", "Ouvrir"]}>
             {dashboards.map((dashboard: Dashboard) => {
               const overview = overviewById[dashboard.id];
               return (
@@ -118,6 +144,20 @@ const DashboardsListPage = () => {
                       </div>
                     ) : (
                       <span className="muted">Statuts indisponibles</span>
+                    )}
+                  </td>
+                  <td>
+                    {overview ? (
+                      <div className="chips">
+                        <span className="pill">
+                          <strong>Actions ouvertes</strong> {overview.openActions}
+                        </span>
+                        <span className="pill">
+                          <strong>En retard</strong> {overview.overdueActions}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="muted">Actions indisponibles</span>
                     )}
                   </td>
                   <td>
