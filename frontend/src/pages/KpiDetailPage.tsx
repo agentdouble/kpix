@@ -235,10 +235,38 @@ const KpiDetailPage = () => {
       return [] as Comment[];
     }
 
+    const effectiveBounds = (() => {
+      if (periodStart !== periodEnd) {
+        return { start: periodStart, end: periodEnd };
+      }
+      const frequency = kpiQuery.data?.frequency;
+      if (!frequency) {
+        return { start: periodStart, end: periodEnd };
+      }
+      const startDate = new Date(periodStart);
+      if (Number.isNaN(startDate.getTime())) {
+        return { start: periodStart, end: periodEnd };
+      }
+      if (frequency === 'MONTHLY') {
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(endDate.getDate() - 1);
+        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
+      }
+      if (frequency === 'WEEKLY') {
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 6);
+        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
+      }
+      return { start: periodStart, end: periodEnd };
+    })();
+
+    const { start, end } = effectiveBounds;
+
     const isWithin = (dateString: string) => {
       if (!dateString) return false;
       const day = dateString.slice(0, 10);
-      return day >= periodStart && day <= periodEnd;
+      return day >= start && day <= end;
     };
 
     return comments.filter((comment) => comment.kpiId === kpiId && isWithin(comment.createdAt));
@@ -249,13 +277,45 @@ const KpiDetailPage = () => {
       return [] as ActionItem[];
     }
 
+    const effectiveBounds = (() => {
+      if (periodStart !== periodEnd) {
+        return { start: periodStart, end: periodEnd };
+      }
+      const frequency = kpiQuery.data?.frequency;
+      if (!frequency) {
+        return { start: periodStart, end: periodEnd };
+      }
+      const startDate = new Date(periodStart);
+      if (Number.isNaN(startDate.getTime())) {
+        return { start: periodStart, end: periodEnd };
+      }
+      if (frequency === 'MONTHLY') {
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(endDate.getDate() - 1);
+        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
+      }
+      if (frequency === 'WEEKLY') {
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 6);
+        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
+      }
+      return { start: periodStart, end: periodEnd };
+    })();
+
+    const { start, end } = effectiveBounds;
+
     const isWithin = (dateString: string | null | undefined) => {
       if (!dateString) return false;
       const day = dateString.slice(0, 10);
-      return day >= periodStart && day <= periodEnd;
+      return day >= start && day <= end;
     };
 
-    return actions.filter((action) => isWithin(action.createdAt) || isWithin(action.dueDate));
+    return actions.filter(
+      (action) =>
+        (action.status === 'OPEN' || action.status === 'IN_PROGRESS') &&
+        (isWithin(action.createdAt) || isWithin(action.dueDate)),
+    );
   };
 
   const getEventCountsForPeriod = (periodStart: string, periodEnd: string) => {
@@ -421,6 +481,7 @@ const KpiDetailPage = () => {
                       display: false,
                     },
                     tooltip: {
+                      filter: (item) => item.datasetIndex === 0,
                       callbacks: {
                         title: (items) => {
                           const item = items[0];
