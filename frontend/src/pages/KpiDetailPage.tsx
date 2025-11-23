@@ -12,9 +12,34 @@ import Card from '../components/Card';
 import Table from '../components/Table';
 import type { ActionItem, Comment, KpiValue } from '../types';
 
+const frequencyLabel = {
+  DAILY: 'Quotidien',
+  WEEKLY: 'Hebdomadaire',
+  MONTHLY: 'Mensuel',
+} as const;
+
+const directionLabel = {
+  UP_IS_BETTER: 'Plus haut = mieux',
+  DOWN_IS_BETTER: 'Plus bas = mieux',
+} as const;
+
+const actionStatusLabel = {
+  OPEN: 'Ouvert',
+  IN_PROGRESS: 'En cours',
+  DONE: 'Terminé',
+  CANCELLED: 'Annulé',
+} as const;
+
+const formatPeriod = (value: KpiValue) => {
+  if (value.periodStart === value.periodEnd) {
+    return value.periodStart;
+  }
+  return `${value.periodStart} → ${value.periodEnd}`;
+};
+
 const KpiDetailPage = () => {
   const { kpiId } = useParams<{ kpiId: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const queryClient = useQueryClient();
 
   const kpiQuery = useQuery({
@@ -41,43 +66,54 @@ const KpiDetailPage = () => {
     enabled: Boolean(kpiId),
   });
 
-  const [valueForm, setValueForm] = useState({ period: '', value: '', status: 'GREEN' as KpiValue['status'] });
-  const [actionForm, setActionForm] = useState({ title: '', owner: '', dueDate: '' });
-  const [commentForm, setCommentForm] = useState({ author: '', message: '' });
+  const [valueForm, setValueForm] = useState({ periodStart: '', periodEnd: '', value: '', comment: '' });
+  const [actionForm, setActionForm] = useState({ title: '', description: '', dueDate: '' });
+  const [commentForm, setCommentForm] = useState({ message: '' });
 
   const addValueMutation = useMutation({
     mutationFn: () =>
       kpiValuesApi.create(
         kpiId!,
-        { period: valueForm.period, value: Number(valueForm.value), status: valueForm.status },
+        {
+          periodStart: valueForm.periodStart,
+          periodEnd: valueForm.periodEnd || undefined,
+          value: Number(valueForm.value),
+          comment: valueForm.comment || undefined,
+        },
         token,
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kpi-values', kpiId] });
       queryClient.invalidateQueries({ queryKey: ['kpi', kpiId] });
-      setValueForm({ period: '', value: '', status: 'GREEN' });
+      setValueForm({ periodStart: '', periodEnd: '', value: '', comment: '' });
     },
   });
 
   const addActionMutation = useMutation({
-    mutationFn: () => actionsApi.create(kpiId!, actionForm, token),
+    mutationFn: () =>
+      actionsApi.create(kpiId!, {
+        title: actionForm.title,
+        description: actionForm.description || undefined,
+        dueDate: actionForm.dueDate || undefined,
+      }, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kpi-actions', kpiId] });
-      setActionForm({ title: '', owner: '', dueDate: '' });
+      setActionForm({ title: '', description: '', dueDate: '' });
     },
   });
 
   const addCommentMutation = useMutation({
-    mutationFn: () => commentsApi.createForKpi(kpiId!, commentForm, token),
+    mutationFn: () => commentsApi.createForKpi(kpiId!, { content: commentForm.message }, token),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kpi-comments', kpiId] });
-      setCommentForm({ author: '', message: '' });
+      setCommentForm({ message: '' });
     },
   });
 
   const values = valuesQuery.data ?? [];
-  const chartValues = useMemo(() => values.slice(-8), [values]);
+  const chartValues = useMemo(() => values.slice(0, 8), [values]);
   const maxValue = useMemo(() => (chartValues.length > 0 ? Math.max(...chartValues.map((v) => v.value)) : 1), [chartValues]);
+  const latestValue = values[0];
 
   if (kpiQuery.isLoading) {
     return <p className="muted">Chargement du KPI...</p>;
@@ -93,11 +129,16 @@ const KpiDetailPage = () => {
     <div className="grid" style={{ gap: '24px' }}>
       <div className="section-title">
         <div>
-          <p className="muted">{kpi.frequency}</p>
+          <p className="muted">
+            {frequencyLabel[kpi.frequency]} · {directionLabel[kpi.direction]}
+          </p>
           <h1>{kpi.name}</h1>
-          <p className="muted">Cible : {kpi.target ?? '-'} {kpi.unit ?? ''}</p>
+          <p className="muted">
+            Seuils : vert {kpi.thresholdGreen} · orange {kpi.thresholdOrange} · rouge {kpi.thresholdRed}
+          </p>
+          {kpi.unit && <p className="muted">Unité : {kpi.unit}</p>}
         </div>
-        <BadgeStatus status={kpi.status} />
+        {latestValue ? <BadgeStatus status={latestValue.status} /> : <span className="pill">Pas de valeur récente</span>}
       </div>
 
       <Card title="Graphique d'évolution">
@@ -118,12 +159,12 @@ const KpiDetailPage = () => {
                     padding: '6px',
                     fontWeight: 700,
                   }}
-                  title={value.period}
+                  title={formatPeriod(value)}
                 >
                   {value.value}
                 </div>
                 <p className="muted" style={{ marginTop: '8px', textAlign: 'center', fontSize: '13px' }}>
-                  {value.period}
+                  {formatPeriod(value)}
                 </p>
               </div>
             ))}
@@ -136,16 +177,17 @@ const KpiDetailPage = () => {
           {valuesQuery.isLoading && <p className="muted">Chargement...</p>}
           {values.length === 0 && !valuesQuery.isLoading && <p>Aucune valeur enregistrée.</p>}
           {values.length > 0 && (
-            <Table headers={["Période", "Valeur", "Statut"]}>
+            <Table headers={["Période", "Valeur", "Statut", "Commentaire"]}>
               {values.map((value) => (
                 <tr key={value.id}>
-                  <td>{value.period}</td>
+                  <td>{formatPeriod(value)}</td>
                   <td>
                     {value.value} {kpi.unit}
                   </td>
                   <td>
                     <BadgeStatus status={value.status} />
                   </td>
+                  <td>{value.comment ?? '-'}</td>
                 </tr>
               ))}
             </Table>
@@ -162,13 +204,22 @@ const KpiDetailPage = () => {
             }}
           >
             <div className="field">
-              <label htmlFor="period">Période</label>
+              <label htmlFor="period-start">Début de période</label>
               <input
-                id="period"
-                value={valueForm.period}
-                onChange={(e) => setValueForm((prev) => ({ ...prev, period: e.target.value }))}
-                placeholder="2024-W49 ou 2024-12"
+                id="period-start"
+                type="date"
+                value={valueForm.periodStart}
+                onChange={(e) => setValueForm((prev) => ({ ...prev, periodStart: e.target.value }))}
                 required
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="period-end">Fin de période (optionnel)</label>
+              <input
+                id="period-end"
+                type="date"
+                value={valueForm.periodEnd}
+                onChange={(e) => setValueForm((prev) => ({ ...prev, periodEnd: e.target.value }))}
               />
             </div>
             <div className="field">
@@ -183,16 +234,13 @@ const KpiDetailPage = () => {
               />
             </div>
             <div className="field">
-              <label htmlFor="status">Statut</label>
-              <select
-                id="status"
-                value={valueForm.status}
-                onChange={(e) => setValueForm((prev) => ({ ...prev, status: e.target.value as KpiValue['status'] }))}
-              >
-                <option value="GREEN">Vert</option>
-                <option value="ORANGE">Orange</option>
-                <option value="RED">Rouge</option>
-              </select>
+              <label htmlFor="comment">Commentaire</label>
+              <textarea
+                id="comment"
+                value={valueForm.comment}
+                onChange={(e) => setValueForm((prev) => ({ ...prev, comment: e.target.value }))}
+                placeholder="Note facultative"
+              />
             </div>
             <Button type="submit" disabled={addValueMutation.isPending}>
               {addValueMutation.isPending ? 'Ajout...' : 'Ajouter'}
@@ -221,10 +269,10 @@ const KpiDetailPage = () => {
                   <div className="section-title" style={{ marginBottom: '6px' }}>
                     <strong>{action.title}</strong>
                     <span className="pill">
-                      {action.progress}% · {action.status}
+                      {action.progress}% · {actionStatusLabel[action.status]}
                     </span>
                   </div>
-                  <p className="muted">Responsable : {action.owner}</p>
+                  {action.description && <p className="muted">{action.description}</p>}
                   {action.dueDate && <p className="muted">Échéance : {action.dueDate}</p>}
                 </li>
               ))}
@@ -248,12 +296,11 @@ const KpiDetailPage = () => {
               />
             </div>
             <div className="field">
-              <label htmlFor="action-owner">Responsable</label>
-              <input
-                id="action-owner"
-                value={actionForm.owner}
-                onChange={(e) => setActionForm((prev) => ({ ...prev, owner: e.target.value }))}
-                required
+              <label htmlFor="action-description">Description</label>
+              <textarea
+                id="action-description"
+                value={actionForm.description}
+                onChange={(e) => setActionForm((prev) => ({ ...prev, description: e.target.value }))}
               />
             </div>
             <div className="field">
@@ -280,12 +327,12 @@ const KpiDetailPage = () => {
               {commentsQuery.data.map((comment: Comment) => (
                 <li key={comment.id} style={{ borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
                   <div className="section-title" style={{ marginBottom: '4px' }}>
-                    <strong>{comment.author}</strong>
+                    <strong>{comment.authorId ? `Auteur ${comment.authorId.slice(0, 8)}` : 'Auteur inconnu'}</strong>
                     <span className="muted" style={{ fontSize: '13px' }}>
                       {new Date(comment.createdAt).toLocaleString('fr-FR')}
                     </span>
                   </div>
-                  <p>{comment.message}</p>
+                  <p>{comment.content}</p>
                 </li>
               ))}
             </ul>
@@ -298,15 +345,11 @@ const KpiDetailPage = () => {
               addCommentMutation.mutate();
             }}
           >
-            <div className="field">
-              <label htmlFor="comment-author">Auteur</label>
-              <input
-                id="comment-author"
-                value={commentForm.author}
-                onChange={(e) => setCommentForm((prev) => ({ ...prev, author: e.target.value }))}
-                required
-              />
-            </div>
+            {user && (
+              <div className="muted">
+                Posté en tant que <strong>{user.fullName}</strong>
+              </div>
+            )}
             <div className="field">
               <label htmlFor="comment-message">Message</label>
               <textarea

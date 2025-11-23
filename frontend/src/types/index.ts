@@ -1,80 +1,107 @@
 export type User = {
   id: string;
   email: string;
-  name: string;
+  fullName: string;
+  role: 'ADMIN' | 'USER';
+  isActive: boolean;
+  organizationId: string;
+  createdAt: string;
 };
 
-export type DashboardStats = {
-  green: number;
-  orange: number;
-  red: number;
+export type StatusBreakdown = {
+  GREEN: number;
+  ORANGE: number;
+  RED: number;
 };
 
 export type Dashboard = {
   id: string;
+  organizationId: string;
+  ownerId?: string | null;
   title: string;
-  process: string;
-  description?: string;
-  stats: DashboardStats;
+  description?: string | null;
+  processName?: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
+
+export type DashboardOverview = {
+  dashboardId: string;
+  title: string;
+  processName: string | null;
+  totalKpis: number;
+  statusBreakdown: StatusBreakdown;
+  openActions: number;
+  overdueActions: number;
+};
+
+export type KpiDirection = 'UP_IS_BETTER' | 'DOWN_IS_BETTER';
+export type KpiFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+export type KpiStatus = 'GREEN' | 'ORANGE' | 'RED';
+export type ActionStatus = 'OPEN' | 'IN_PROGRESS' | 'DONE' | 'CANCELLED';
+export type ImportStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED';
+export type ImportType = 'EXCEL' | 'API';
 
 export type Kpi = {
   id: string;
   dashboardId: string;
+  organizationId: string;
+  ownerId?: string | null;
   name: string;
-  unit?: string;
-  frequency: string;
-  status: 'GREEN' | 'ORANGE' | 'RED';
-  latestValue?: number;
-  target?: number;
-  direction?: 'UP' | 'DOWN';
-  threshold?: {
-    green: number;
-    red: number;
-  };
+  unit?: string | null;
+  frequency: KpiFrequency;
+  direction: KpiDirection;
+  thresholdGreen: number;
+  thresholdOrange: number;
+  thresholdRed: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type KpiValue = {
   id: string;
   kpiId: string;
-  period: string;
+  organizationId: string;
+  periodStart: string;
+  periodEnd: string;
   value: number;
-  status: 'GREEN' | 'ORANGE' | 'RED';
+  status: KpiStatus;
+  comment?: string | null;
+  createdAt: string;
 };
 
 export type ActionItem = {
   id: string;
   kpiId: string;
+  organizationId: string;
   title: string;
-  owner: string;
+  description?: string | null;
+  ownerId?: string | null;
+  dueDate?: string | null;
   progress: number;
-  status: 'OPEN' | 'LATE' | 'DONE';
-  dueDate?: string;
+  status: ActionStatus;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Comment = {
   id: string;
-  targetId: string;
-  targetType: 'KPI' | 'ACTION';
-  author: string;
-  message: string;
+  kpiId?: string | null;
+  actionPlanId?: string | null;
+  organizationId: string;
+  authorId?: string | null;
+  content: string;
   createdAt: string;
-};
-
-export type OverviewItem = {
-  dashboardId: string;
-  title: string;
-  process: string;
-  stats: DashboardStats;
-  openActions: number;
-  lateActions: number;
 };
 
 export type ImportJob = {
   id: string;
-  filename: string;
-  status: 'PENDING' | 'RUNNING' | 'DONE' | 'FAILED';
-  progress: number;
-  startedAt: string;
-  finishedAt?: string;
+  organizationId: string;
+  type: ImportType;
+  status: ImportStatus;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  errorMessage?: string | null;
 };

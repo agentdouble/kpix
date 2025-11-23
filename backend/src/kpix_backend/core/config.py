@@ -22,7 +22,12 @@ class Settings(BaseSettings):
     local_llm_endpoint: Optional[AnyHttpUrl] = None
     api_llm_provider_key: Optional[str] = None
 
-    cors_origins: list[str] = []
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:4173",
+        "http://127.0.0.1:4173",
+    ]
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -13,6 +13,7 @@ import type { User } from '../types';
 
 type AuthContextValue = {
   token: string | null;
+  refreshToken: string | null;
   user: User | null;
   initializing: boolean;
   login: (params: { email: string; password: string }) => Promise<void>;
@@ -20,10 +21,12 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const TOKEN_KEY = 'kpix_token';
+const ACCESS_TOKEN_KEY = 'kpix_access_token';
+const REFRESH_TOKEN_KEY = 'kpix_refresh_token';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY));
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(ACCESS_TOKEN_KEY));
+  const [refreshToken, setRefreshToken] = useState<string | null>(() => localStorage.getItem(REFRESH_TOKEN_KEY));
   const [user, setUser] = useState<User | null>(null);
   const [initializing, setInitializing] = useState(true);
 
@@ -37,8 +40,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const me = await authApi.getMe(token);
         setUser(me);
       } catch (error) {
-        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
         setToken(null);
+        setRefreshToken(null);
         console.error(error);
       } finally {
         setInitializing(false);
@@ -49,21 +54,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(() => {
     setToken(null);
+    setRefreshToken(null);
     setUser(null);
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
   }, []);
 
   const login = useCallback(async ({ email, password }: { email: string; password: string }) => {
     const result = await authApi.login(email, password);
-    setToken(result.token);
-    localStorage.setItem(TOKEN_KEY, result.token);
-    const profile = result.user ?? (await authApi.getMe(result.token));
-    setUser(profile);
+    setToken(result.accessToken);
+    setRefreshToken(result.refreshToken);
+    localStorage.setItem(ACCESS_TOKEN_KEY, result.accessToken);
+    localStorage.setItem(REFRESH_TOKEN_KEY, result.refreshToken);
+    setUser(result.user);
   }, []);
 
   const value = useMemo(
-    () => ({ token, user, initializing, login, logout }),
-    [token, user, initializing, login, logout],
+    () => ({ token, refreshToken, user, initializing, login, logout }),
+    [token, refreshToken, user, initializing, login, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

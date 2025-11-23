@@ -2,6 +2,13 @@
 
 Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (React + Vite, noir & blanc).
 
+## Start everything
+- `./script.sh` lance PostgreSQL (docker, port 5433), applique les migrations, démarre l’API sur 8000 et le frontend sur 5173.
+- Variables ajustables : `BACKEND_PORT`, `FRONTEND_PORT`, `DB_PORT`, `DATABASE_URL`, `VITE_API_BASE_URL` (défaut `http://localhost:8000/api/v1`), `SKIP_DB_BOOT=1` si une base existe déjà.
+- API docs : `http://localhost:8000/api/docs`. Frontend : `http://localhost:5173`.
+- Créez un premier compte admin après le démarrage :  
+  `curl -X POST http://localhost:8000/api/v1/auth/signup -H "Content-Type: application/json" -d '{"email":"admin@kpix.test","password":"changeme123","full_name":"Admin","organization_name":"Kpix"}'`
+
 ## Backend (FastAPI)
 - Code and tooling live in `backend/`. Stack: FastAPI, async SQLAlchemy, Alembic, JWT auth, PostgreSQL.
 - Plan: `backend/planbackend.md`.
@@ -27,8 +34,8 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 - Plan : `frontend/planfrontend.md`.
 - Quickstart (depuis `frontend/`) :
   - `npm install`
+  - `VITE_API_BASE_URL=http://localhost:8000/api/v1 npm run dev` pour utiliser l’API
   - `VITE_USE_DEMO_DATA=true npm run dev` pour le mode démo sans backend
-  - ou définir `VITE_API_BASE_URL` puis `npm run dev` pour utiliser l’API
 - Docs : `frontend/README.md`.
 
 ## Development notes

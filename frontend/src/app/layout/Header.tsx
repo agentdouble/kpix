@@ -41,7 +41,7 @@ const Header = () => {
         {isDemoMode && <span className="pill">Mode démo</span>}
         {user && (
           <span className="pill">
-            <strong>{user.name}</strong>
+            <strong>{user.fullName}</strong>
             <span className="muted" style={{ fontSize: '13px' }}>
               {user.email}
             </span>

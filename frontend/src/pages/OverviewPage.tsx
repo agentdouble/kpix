@@ -5,7 +5,7 @@ import { reportingApi } from '../api/reporting';
 import { useAuth } from '../app/auth';
 import Card from '../components/Card';
 import Table from '../components/Table';
-import type { OverviewItem } from '../types';
+import type { DashboardOverview } from '../types';
 
 const OverviewPage = () => {
   const { token } = useAuth();
@@ -21,7 +21,10 @@ const OverviewPage = () => {
   const filtered = useMemo(() => {
     if (!filter) return items;
     const needle = filter.toLowerCase();
-    return items.filter((item) => item.title.toLowerCase().includes(needle) || item.process.toLowerCase().includes(needle));
+    return items.filter((item) => {
+      const process = item.processName?.toLowerCase() ?? '';
+      return item.title.toLowerCase().includes(needle) || process.includes(needle);
+    });
   }, [items, filter]);
 
   return (
@@ -46,24 +49,24 @@ const OverviewPage = () => {
         {filtered.length === 0 && !overviewQuery.isLoading && <p>Aucun tableau de bord à afficher.</p>}
         {filtered.length > 0 && (
           <Table headers={["Tableau", "Process", "KPIs", "Actions"]}>
-            {filtered.map((item: OverviewItem) => (
+            {filtered.map((item: DashboardOverview) => (
               <tr key={item.dashboardId}>
                 <td>
                   <Link to={`/dashboards/${item.dashboardId}`} className="nav-link">
                     {item.title}
                   </Link>
                 </td>
-                <td>{item.process}</td>
+                <td>{item.processName ?? '-'}</td>
                 <td>
                   <div className="chips">
                     <span className="pill">
-                      <strong>Vert</strong> {item.stats.green}
+                      <strong>Vert</strong> {item.statusBreakdown.GREEN}
                     </span>
                     <span className="pill">
-                      <strong>Orange</strong> {item.stats.orange}
+                      <strong>Orange</strong> {item.statusBreakdown.ORANGE}
                     </span>
                     <span className="pill">
-                      <strong>Rouge</strong> {item.stats.red}
+                      <strong>Rouge</strong> {item.statusBreakdown.RED}
                     </span>
                   </div>
                 </td>
@@ -72,7 +75,7 @@ const OverviewPage = () => {
                     <strong>Actions ouvertes</strong> {item.openActions}
                   </span>
                   <span className="pill" style={{ marginLeft: '8px' }}>
-                    <strong>En retard</strong> {item.lateActions}
+                    <strong>En retard</strong> {item.overdueActions}
                   </span>
                 </td>
               </tr>
