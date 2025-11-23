@@ -3,8 +3,8 @@
 Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (React + Vite, noir & blanc).
 
 ## Start everything
-- Assurez-vous qu’un PostgreSQL est accessible (ex: `postgresql://postgres:postgres@localhost:5432/kpix`).
-- `./start.sh` applique les migrations, démarre l’API sur 8000 et le frontend sur 5173.
+- Assurez-vous qu’un PostgreSQL est accessible (driver async : `postgresql+asyncpg://...`).
+- `./start.sh` applique les migrations, lit `backend/.env` si présent, démarre l’API sur 8000 et le frontend sur 5173.
 - Variables ajustables : `BACKEND_PORT`, `FRONTEND_PORT`, `DATABASE_URL`, `VITE_API_BASE_URL` (défaut `http://localhost:8000/api/v1`), `LLM_MODE` (`api` ou `local`).
 - API docs : `http://localhost:8000/api/docs`. Frontend : `http://localhost:5173`.
 - Créez un premier compte admin après le démarrage :  
