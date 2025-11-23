@@ -448,6 +448,7 @@ const KpiDetailPage = () => {
                       data: actionData,
                       borderWidth: 0,
                       pointRadius: actionData.map((v) => (v == null ? 0 : 5)),
+                      pointHitRadius: 10,
                       pointStyle: 'triangle',
                       pointBackgroundColor: '#000000',
                       pointBorderColor: '#000000',
@@ -511,8 +512,9 @@ const KpiDetailPage = () => {
                     if (!dataset || !value) {
                       return;
                     }
-                    if (dataset.label === 'Commentaires') {
-                      const periodComments = getCommentsForPeriod(value.periodStart, value.periodEnd);
+                    const periodActions = getActionsForPeriod(value.periodStart, value.periodEnd);
+                    const periodComments = getCommentsForPeriod(value.periodStart, value.periodEnd);
+                    if (dataset.label === 'Commentaires' || (periodComments.length > 0 && periodActions.length === 0)) {
                       if (periodComments.length === 0) {
                         return;
                       }
@@ -521,8 +523,9 @@ const KpiDetailPage = () => {
                         periodLabel: formatPeriod(value),
                         comments: periodComments,
                       });
-                    } else if (dataset.label === 'Échéances actions') {
-                      const periodActions = getActionsForPeriod(value.periodStart, value.periodEnd);
+                      return;
+                    }
+                    if (dataset.label === 'Échéances actions' || periodActions.length > 0) {
                       if (periodActions.length === 0) {
                         return;
                       }
@@ -531,9 +534,9 @@ const KpiDetailPage = () => {
                         periodLabel: formatPeriod(value),
                         actions: periodActions,
                       });
-                    } else {
-                      setChartSelection(null);
+                      return;
                     }
+                    setChartSelection(null);
                   },
                   scales: {
                     x: {
