@@ -6,7 +6,12 @@ Initial repository setup for the kpix project. The codebase is organized into `b
 - See `backend/planbackend.md` for the technical plan of the performance management backend (PostgreSQL, APIs, domains).
 
 ## Frontend
-- See `frontend/planfrontend.md` for the technical and UX plan of the web frontend (React stack, pages, black & white design).
+- Tech stack: React + TypeScript + Vite, design noir & blanc, pages Login / Dashboards / KPI détail / Overview / Imports.
+- Quick start (depuis `frontend/`) :
+  - `npm install`
+  - `VITE_USE_DEMO_DATA=true npm run dev` pour le mode démo sans backend
+  - ou définir `VITE_API_BASE_URL` puis `npm run dev` pour utiliser l’API
+- Documentation détaillée : `frontend/README.md` et le plan `frontend/planfrontend.md`.
 
 ## Development notes
 - Follow the guidelines in `AGENTS.md` for contributions and environment expectations.
