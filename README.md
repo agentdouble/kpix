@@ -15,7 +15,7 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 - Plan: `backend/planbackend.md`.
 - Quickstart:
   1. `cd backend`
-  2. Crée un `.env` :
+  2. Copie `backend/.env.example` en `.env` puis ajuste (exemple ci-dessous) :
      ```
      DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpix
      JWT_SECRET_KEY=change-me
