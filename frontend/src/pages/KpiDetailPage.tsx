@@ -189,13 +189,6 @@ const KpiDetailPage = () => {
   const comments = commentsQuery.data ?? [];
   const [chartRange, setChartRange] = useState<'3M' | '6M' | '1Y' | 'ALL'>('6M');
   const [showThresholds, setShowThresholds] = useState(false);
-  const [showActionDeadlines, setShowActionDeadlines] = useState(false);
-  const [showCommentsOnChart, setShowCommentsOnChart] = useState(false);
-  const [chartSelection, setChartSelection] = useState<
-    | { kind: 'comments'; periodLabel: string; comments: Comment[] }
-    | { kind: 'actions'; periodLabel: string; actions: ActionItem[] }
-    | null
-  >(null);
 
   const chartValues = useMemo(() => {
     if (values.length === 0) {
@@ -229,100 +222,6 @@ const KpiDetailPage = () => {
     [chartValues],
   );
   const latestValue = values[0];
-
-  const getCommentsForPeriod = (periodStart: string, periodEnd: string) => {
-    if (!periodStart || !periodEnd) {
-      return [] as Comment[];
-    }
-
-    const effectiveBounds = (() => {
-      if (periodStart !== periodEnd) {
-        return { start: periodStart, end: periodEnd };
-      }
-      const frequency = kpiQuery.data?.frequency;
-      if (!frequency) {
-        return { start: periodStart, end: periodEnd };
-      }
-      const startDate = new Date(periodStart);
-      if (Number.isNaN(startDate.getTime())) {
-        return { start: periodStart, end: periodEnd };
-      }
-      if (frequency === 'MONTHLY') {
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(endDate.getDate() - 1);
-        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
-      }
-      if (frequency === 'WEEKLY') {
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 6);
-        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
-      }
-      return { start: periodStart, end: periodEnd };
-    })();
-
-    const { start, end } = effectiveBounds;
-
-    const isWithin = (dateString: string) => {
-      if (!dateString) return false;
-      const day = dateString.slice(0, 10);
-      return day >= start && day <= end;
-    };
-
-    return comments.filter((comment) => comment.kpiId === kpiId && isWithin(comment.createdAt));
-  };
-
-  const getActionsForPeriod = (periodStart: string, periodEnd: string) => {
-    if (!periodStart || !periodEnd) {
-      return [] as ActionItem[];
-    }
-
-    const effectiveBounds = (() => {
-      if (periodStart !== periodEnd) {
-        return { start: periodStart, end: periodEnd };
-      }
-      const frequency = kpiQuery.data?.frequency;
-      if (!frequency) {
-        return { start: periodStart, end: periodEnd };
-      }
-      const startDate = new Date(periodStart);
-      if (Number.isNaN(startDate.getTime())) {
-        return { start: periodStart, end: periodEnd };
-      }
-      if (frequency === 'MONTHLY') {
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + 1);
-        endDate.setDate(endDate.getDate() - 1);
-        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
-      }
-      if (frequency === 'WEEKLY') {
-        const endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 6);
-        return { start: periodStart, end: endDate.toISOString().slice(0, 10) };
-      }
-      return { start: periodStart, end: periodEnd };
-    })();
-
-    const { start, end } = effectiveBounds;
-
-    const isWithin = (dateString: string | null | undefined) => {
-      if (!dateString) return false;
-      const day = dateString.slice(0, 10);
-      return day >= start && day <= end;
-    };
-
-    return actions.filter(
-      (action) =>
-        (action.status === 'OPEN' || action.status === 'IN_PROGRESS') &&
-        (isWithin(action.createdAt) || isWithin(action.dueDate)),
-    );
-  };
-
-  const getEventCountsForPeriod = (periodStart: string, periodEnd: string) => {
-    const periodActions = getActionsForPeriod(periodStart, periodEnd);
-    const periodComments = getCommentsForPeriod(periodStart, periodEnd);
-    return { actionsCount: periodActions.length, commentsCount: periodComments.length };
-  };
 
   if (kpiQuery.isLoading) {
     return <p className="muted">Chargement du KPI...</p>;
@@ -387,7 +286,6 @@ const KpiDetailPage = () => {
                   const labels = chartValuesChrono.map((v) => formatPeriod(v));
                   const data = chartValuesChrono.map((v) => v.value);
                   const pointBackgroundColor = chartValuesChrono.map((v) => statusColor(v.status));
-                  const eventCounts = chartValuesChrono.map((v) => getEventCountsForPeriod(v.periodStart, v.periodEnd));
 
                   const datasets: any[] = [
                     {
@@ -399,7 +297,7 @@ const KpiDetailPage = () => {
                       pointBackgroundColor,
                       pointBorderColor: '#000000',
                       pointBorderWidth: 1,
-                      pointRadius: eventCounts.map((e) => (e.actionsCount + e.commentsCount > 0 ? 5 : 4)),
+                      pointRadius: 4,
                       pointHoverRadius: 6,
                       tension: 0.3,
                       fill: true,
@@ -438,41 +336,6 @@ const KpiDetailPage = () => {
                     );
                   }
 
-                  if (showActionDeadlines) {
-                    const actionData = chartValuesChrono.map((value) => {
-                      const { actionsCount } = getEventCountsForPeriod(value.periodStart, value.periodEnd);
-                      return actionsCount > 0 ? value.value : null;
-                    });
-                    datasets.push({
-                      label: 'Échéances actions',
-                      data: actionData,
-                      borderWidth: 0,
-                      pointRadius: actionData.map((v) => (v == null ? 0 : 5)),
-                      pointHitRadius: 10,
-                      pointStyle: 'triangle',
-                      pointBackgroundColor: '#000000',
-                      pointBorderColor: '#000000',
-                      showLine: false,
-                    });
-                  }
-
-                  if (showCommentsOnChart) {
-                    const commentData = chartValuesChrono.map((value) => {
-                      const { commentsCount } = getEventCountsForPeriod(value.periodStart, value.periodEnd);
-                      return commentsCount > 0 ? value.value : null;
-                    });
-                    datasets.push({
-                      label: 'Commentaires',
-                      data: commentData,
-                      borderWidth: 0,
-                      pointRadius: commentData.map((v) => (v == null ? 0 : 4)),
-                      pointStyle: 'rectRounded',
-                      pointBackgroundColor: '#6b7280',
-                      pointBorderColor: '#6b7280',
-                      showLine: false,
-                    });
-                  }
-
                   return { labels, datasets };
                 })()}
                 options={{
@@ -491,52 +354,11 @@ const KpiDetailPage = () => {
                         },
                         label: (item) => {
                           const value = chartValuesChrono[item.dataIndex];
-                          const { actionsCount, commentsCount } = getEventCountsForPeriod(
-                            value.periodStart,
-                            value.periodEnd,
-                          );
                           const base = kpi.unit ? `${value.value} ${kpi.unit}` : `${value.value}`;
-                          const eventsLabel = `${actionsCount} action${actionsCount > 1 ? 's' : ''} · ${commentsCount} commentaire${commentsCount > 1 ? 's' : ''}`;
-                          return `${base} · ${eventsLabel}`;
+                          return base;
                         },
                       },
                     },
-                  },
-                  onClick: (_event, elements, chart) => {
-                    const element = elements[0];
-                    if (!element) {
-                      return;
-                    }
-                    const dataset = chart.data.datasets?.[element.datasetIndex];
-                    const value = chartValuesChrono[element.index];
-                    if (!dataset || !value) {
-                      return;
-                    }
-                    const periodActions = getActionsForPeriod(value.periodStart, value.periodEnd);
-                    const periodComments = getCommentsForPeriod(value.periodStart, value.periodEnd);
-                    if (dataset.label === 'Commentaires' || (periodComments.length > 0 && periodActions.length === 0)) {
-                      if (periodComments.length === 0) {
-                        return;
-                      }
-                      setChartSelection({
-                        kind: 'comments',
-                        periodLabel: formatPeriod(value),
-                        comments: periodComments,
-                      });
-                      return;
-                    }
-                    if (dataset.label === 'Échéances actions' || periodActions.length > 0) {
-                      if (periodActions.length === 0) {
-                        return;
-                      }
-                      setChartSelection({
-                        kind: 'actions',
-                        periodLabel: formatPeriod(value),
-                        actions: periodActions,
-                      });
-                      return;
-                    }
-                    setChartSelection(null);
                   },
                   scales: {
                     x: {
@@ -576,72 +398,7 @@ const KpiDetailPage = () => {
                 />
                 Afficher les seuils
               </label>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="checkbox"
-                  checked={showActionDeadlines}
-                  onChange={(e) => setShowActionDeadlines(e.target.checked)}
-                />
-                Échéances actions
-              </label>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                <input
-                  type="checkbox"
-                  checked={showCommentsOnChart}
-                  onChange={(e) => setShowCommentsOnChart(e.target.checked)}
-                />
-                Commentaires
-              </label>
             </div>
-            {chartSelection && (
-              <div
-                style={{
-                  border: '1px solid var(--border)',
-                  borderRadius: '8px',
-                  padding: '10px 12px',
-                  background: '#fafafa',
-                  marginTop: '4px',
-                }}
-              >
-                <div className="section-title" style={{ marginBottom: '6px' }}>
-                  <strong>
-                    {chartSelection.kind === 'comments' ? 'Commentaires' : 'Actions'} ·{' '}
-                    {chartSelection.periodLabel}
-                  </strong>
-                  <button
-                    type="button"
-                    className="button ghost"
-                    onClick={() => setChartSelection(null)}
-                  >
-                    Fermer
-                  </button>
-                </div>
-                {chartSelection.kind === 'comments' ? (
-                  <ul className="grid" style={{ gap: '6px' }}>
-                    {chartSelection.comments.map((comment) => (
-                      <li key={comment.id} className="muted" style={{ fontSize: '13px' }}>
-                        <div style={{ marginBottom: 2 }}>
-                          {new Date(comment.createdAt).toLocaleString('fr-FR')}
-                        </div>
-                        <div>{comment.content}</div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <ul className="grid" style={{ gap: '6px' }}>
-                    {chartSelection.actions.map((action) => (
-                      <li key={action.id} className="muted" style={{ fontSize: '13px' }}>
-                        <strong>{action.title}</strong>
-                        <div>
-                          Début : {new Date(action.createdAt).toLocaleDateString('fr-FR')} · Échéance :{' '}
-                          {action.dueDate ?? '-'}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
           </div>
         )}
       </Card>
