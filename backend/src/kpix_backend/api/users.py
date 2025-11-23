@@ -32,6 +32,20 @@ async def list_users(
     return [UserPublic.from_model(u) for u in users]
 
 
+@router.get("/members", response_model=list[UserPublic])
+async def list_members(
+    session: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> list[UserPublic]:
+    result = await session.execute(
+        select(User)
+        .options(selectinload(User.organization))
+        .where(User.organization_id == current_user.organization_id, User.is_active.is_(True))
+    )
+    users = result.scalars().all()
+    return [UserPublic.from_model(u, include_org=False) for u in users]
+
+
 @router.post("", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
 async def create_user(
     payload: UserCreate,

@@ -34,7 +34,10 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 - Tests backend : `cd backend && uv run --extra dev pytest`
 
 ## Frontend (React + Vite)
-- Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Dashboards / KPI détail / Overview / Imports.
+- Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Dashboards / KPI détail / Overview / Imports. Le frontend utilise `chart.js` + `react-chartjs-2` pour les visualisations.
+- La page détail KPI affiche un graphique d'évolution en ligne (Chart.js) avec zone remplie, mise en forme lissée et tooltips riches pour les valeurs du KPI. Les points sont affichés dans l'ordre chronologique (du plus ancien au plus récent, de gauche à droite) et colorés selon le statut (vert, orange, rouge).
+- Les plans d'action peuvent être assignés à un membre de l'organisation, avec un pourcentage d'avancement et un statut (ouvert, en cours, terminé, annulé) définis dès la création.
+- Lors de l’ajout d’une valeur, l’utilisateur saisit une seule date (le backend gère la période complète en fonction de la fréquence du KPI).
 - Plan : `frontend/planfrontend.md`.
 - Quickstart (depuis `frontend/`) :
   - `npm install`
