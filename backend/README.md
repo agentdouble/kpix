@@ -1,4 +1,4 @@
-# kpix backend
+# kpil backend
 
 FastAPI backend for KPI dashboards, action plans, comments, and imports.
 
@@ -11,7 +11,7 @@ FastAPI backend for KPI dashboards, action plans, comments, and imports.
 ### Environment
 Set these in `.env` before running:
 ```
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpix
+DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpil
 JWT_SECRET_KEY=change-me
 ACCESS_TOKEN_EXPIRES_MINUTES=30
 REFRESH_TOKEN_EXPIRES_MINUTES=10080
@@ -31,6 +31,9 @@ BACKEND_PORT=8000  # utilisé par ./start.sh pour choisir le port uvicorn
 - `GET /api/v1/reporting/overview` : synthèse par tableau de bord (KPIs, actions ouvertes/en retard).
 - `GET /api/v1/reporting/top-risks` : KPIs en rouge/orange.
 - `GET /api/v1/reporting/direction` : vue Direction (top KPIs rouges, tendances, actions en retard, actions proches de l’échéance, actions clôturées récemment).
+
+## KPIs et valeur actuelle
+- `GET /api/v1/dashboards/{dashboard_id}/kpis` retourne, pour chaque KPI du tableau de bord, les métadonnées du KPI ainsi que la dernière valeur connue (`latest_value`, son `latest_status` vert/orange/rouge et la date de fin de période `latest_period_end`), utilisée côté frontend pour afficher une colonne « valeur actuelle » colorée dans la vue détail du tableau de bord.
 
 ## Import format
 `POST /api/v1/imports/kpi-values` accepts CSV or Excel with columns:

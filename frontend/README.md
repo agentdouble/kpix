@@ -1,4 +1,4 @@
-# kpix frontend
+# kpil frontend
 
 Frontend React/TypeScript (Vite) pour le pilotage de performance en noir & blanc. Les pages principales :
 - Login
@@ -37,5 +37,5 @@ npm run preview
 - `src/api` : clients API + mode démo (données locales).
 - `src/app` : layout, routing protégé, auth provider.
 - `src/components` : UI de base (Button, Card, Table, BadgeStatus).
-- `src/pages` : écrans du parcours manager (dont la page détail KPI avec un graphique d'évolution Chart.js pour les valeurs du KPI et une gestion des plans d’action assignés à des membres avec avancement et statut).
+- `src/pages` : écrans du parcours manager (dont la page détail KPI avec un graphique d'évolution Chart.js pour les valeurs du KPI et une gestion des plans d’action assignés à des membres avec avancement et statut, ainsi que la page détail tableau de bord où la liste des KPIs affiche la valeur actuelle colorée selon son statut).
 - `src/styles` : thème noir & blanc et styles globaux.

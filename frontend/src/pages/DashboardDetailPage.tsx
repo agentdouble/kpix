@@ -21,6 +21,13 @@ const frequencyLabel: Record<KpiFrequency, string> = {
   MONTHLY: 'Mensuel',
 };
 
+const statusColor = (status: Kpi['latestStatus']) => {
+  if (status === 'GREEN') return '#16a34a';
+  if (status === 'ORANGE') return '#ea580c';
+  if (status === 'RED') return '#dc2626';
+  return undefined;
+};
+
 const DashboardDetailPage = () => {
   const { dashboardId } = useParams<{ dashboardId: string }>();
   const { token } = useAuth();
@@ -146,34 +153,35 @@ const DashboardDetailPage = () => {
         {kpisQuery.isError && <p className="error-text">Impossible de charger les KPIs.</p>}
         {kpis.length === 0 && !kpisQuery.isLoading && <p>Aucun KPI pour le moment.</p>}
         {kpis.length > 0 && (
-          <Table headers={["Nom", "Fréquence", "Sens", "Seuils", "Actions"]}>
-            {kpis.map((kpi: Kpi) => (
-              <tr key={kpi.id}>
-                <td>
-                  <strong>{kpi.name}</strong>
-                </td>
-                <td>{frequencyLabel[kpi.frequency]}</td>
-                <td>{directionLabel[kpi.direction]}</td>
-                <td>
-                  <div className="chips">
-                    <span className="pill">
-                      <strong>Vert</strong> {kpi.thresholdGreen}
-                    </span>
-                    <span className="pill">
-                      <strong>Orange</strong> {kpi.thresholdOrange}
-                    </span>
-                    <span className="pill">
-                      <strong>Rouge</strong> {kpi.thresholdRed}
-                    </span>
-                  </div>
-                </td>
-                <td>
-                  <Link to={`/kpis/${kpi.id}`} className="nav-link">
-                    Voir
-                  </Link>
-                </td>
-              </tr>
-            ))}
+          <Table headers={["Nom", "Fréquence", "Sens", "Valeur actuelle", "Actions"]}>
+            {kpis.map((kpi: Kpi) => {
+              const color = statusColor(kpi.latestStatus);
+              const hasValue = kpi.latestValue != null;
+              return (
+                <tr key={kpi.id}>
+                  <td>
+                    <strong>{kpi.name}</strong>
+                  </td>
+                  <td>{frequencyLabel[kpi.frequency]}</td>
+                  <td>{directionLabel[kpi.direction]}</td>
+                  <td>
+                    {hasValue ? (
+                      <span style={{ color, fontWeight: 600 }}>
+                        {kpi.latestValue}
+                        {kpi.unit ? ` ${kpi.unit}` : ''}
+                      </span>
+                    ) : (
+                      <span className="muted">Pas de valeur</span>
+                    )}
+                  </td>
+                  <td>
+                    <Link to={`/kpis/${kpi.id}`} className="nav-link">
+                      Voir
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
           </Table>
         )}
       </Card>

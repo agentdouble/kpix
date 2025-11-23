@@ -20,7 +20,7 @@ const orgId = 'org-demo';
 
 export const demoUser: User = {
   id: 'user-1',
-  email: 'manager@kpix-demo.com',
+  email: 'manager@kpil-demo.com',
   fullName: 'Demo Manager',
   role: 'ADMIN',
   isActive: true,
@@ -292,7 +292,23 @@ export const demoDashboards = {
 };
 
 export const demoKpis = {
-  list: async (dashboardId: string): Promise<Kpi[]> => kpis.filter((kpi) => kpi.dashboardId === dashboardId),
+  list: async (dashboardId: string): Promise<Kpi[]> => {
+    const dashboardKpis = kpis.filter((kpi) => kpi.dashboardId === dashboardId);
+    return dashboardKpis.map((kpi) => {
+      const latestValue = kpiValues
+        .filter((value) => value.kpiId === kpi.id)
+        .sort((a, b) => (a.periodEnd < b.periodEnd ? 1 : -1))[0];
+      if (!latestValue) {
+        return { ...kpi, latestValue: null, latestStatus: null, latestPeriodEnd: null };
+      }
+      return {
+        ...kpi,
+        latestValue: latestValue.value,
+        latestStatus: latestValue.status,
+        latestPeriodEnd: latestValue.periodEnd,
+      };
+    });
+  },
   get: async (id: string): Promise<Kpi> => {
     const kpi = kpis.find((item) => item.id === id);
     if (!kpi) {

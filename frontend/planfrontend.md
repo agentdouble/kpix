@@ -1,4 +1,4 @@
-# Plan Frontend – Plateforme de pilotage de performance (kpix)
+# Plan Frontend – Plateforme de pilotage de performance (kpil)
 
 Objectif : concevoir un frontend web simple, efficace et prêt pour la production pour la plateforme de pilotage de la performance, en cohérence avec le backend décrit dans `backend/planbackend.md`.
 
@@ -148,7 +148,7 @@ Composants UI réutilisables :
   - stylise les états KPI (VERT/ORANGE/ROUGE) en noir & blanc.
 
 Layout :
-- Header simple en haut (nom de l’app “kpix”, menu minimal).
+- Header simple en haut (nom de l’app “kpil”, menu minimal).
 - Contenu centré, largeur max (ex. 1200px).
 - Sidebar facultative (pour MVP, simple header + navigation horizontale suffisent).
 

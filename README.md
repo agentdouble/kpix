@@ -1,4 +1,4 @@
-# kpix
+# kpil
 
 Performance management platform split into `backend/` (FastAPI, PostgreSQL) and `frontend/` (React + Vite, noir & blanc).
 
@@ -11,7 +11,7 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 - `start.sh` dérive automatiquement `VITE_API_BASE_URL` (`http://localhost:${BACKEND_PORT}/api/v1`) et renseigne `CORS_ORIGINS` pour le backend à partir de `FRONTEND_PORT` afin d’éviter les erreurs de CORS.
 - API docs (par défaut) : `http://localhost:8000/api/docs`. Frontend (par défaut) : `http://localhost:5173`.
 - Créez un premier compte admin après le démarrage :  
-  `curl -X POST http://localhost:8000/api/v1/auth/signup -H "Content-Type: application/json" -d '{"email":"admin@kpix.test","password":"changeme123","full_name":"Admin","organization_name":"Kpix"}'`
+  `curl -X POST http://localhost:8000/api/v1/auth/signup -H "Content-Type: application/json" -d '{"email":"admin@kpil.test","password":"changeme123","full_name":"Admin","organization_name":"Kpil"}'`
 
 ## Backend (FastAPI)
 - Code and tooling live in `backend/`. Stack: FastAPI, async SQLAlchemy, Alembic, JWT auth, PostgreSQL.
@@ -20,7 +20,7 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
   1. `cd backend`
   2. Copie `backend/.env.example` en `.env` puis ajuste (exemple ci-dessous) :
      ```
-     DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpix
+     DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/kpil
      JWT_SECRET_KEY=change-me
      ACCESS_TOKEN_EXPIRES_MINUTES=30
      REFRESH_TOKEN_EXPIRES_MINUTES=10080
@@ -36,6 +36,7 @@ Performance management platform split into `backend/` (FastAPI, PostgreSQL) and 
 ## Frontend (React + Vite)
 - Tech stack : React + TypeScript + Vite, design noir & blanc, pages Login / Tableaux de bord (onglets Liste, Direction, Création) / KPI détail / Imports. Le frontend utilise `chart.js` + `react-chartjs-2` pour les visualisations.
 - La page détail KPI affiche un graphique d'évolution en ligne (Chart.js) avec zone remplie, mise en forme lissée et tooltips riches pour les valeurs du KPI. Les points sont affichés dans l'ordre chronologique (du plus ancien au plus récent, de gauche à droite) et colorés selon le statut (vert, orange, rouge).
+- Sur la page détail d’un tableau de bord, la liste des KPIs affiche désormais la valeur actuelle de chaque KPI (colorée selon son statut vert/orange/rouge) plutôt que les seuils chiffrés, les seuils restant consultables dans la page détail du KPI.
 - Les plans d'action peuvent être assignés à un membre de l'organisation, avec un pourcentage d'avancement et un statut (ouvert, en cours, terminé, annulé) définis dès la création.
 - Lors de l’ajout d’une valeur, l’utilisateur saisit une seule date (le backend gère la période complète en fonction de la fréquence du KPI).
 - Plan : `frontend/planfrontend.md`.

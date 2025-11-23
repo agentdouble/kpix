@@ -19,7 +19,7 @@ fi
 
 BACKEND_PORT=${BACKEND_PORT:-8000}
 FRONTEND_PORT=${FRONTEND_PORT:-5173}
-DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@localhost:5432/kpix}
+DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://postgres:postgres@localhost:5432/kpil}
 JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-secret}
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 LLM_MODE=${LLM_MODE:-api}
@@ -28,7 +28,7 @@ VITE_USE_DEMO_DATA=${VITE_USE_DEMO_DATA:-false}
 CORS_ORIGINS=${CORS_ORIGINS:-"[\"http://localhost:${FRONTEND_PORT}\",\"http://127.0.0.1:${FRONTEND_PORT}\"]"}
 
 if [[ "$DATABASE_URL" != postgresql+asyncpg://* ]]; then
-  echo "DATABASE_URL doit utiliser le driver asyncpg (ex: postgresql+asyncpg://user:pass@localhost:5432/kpix)." >&2
+  echo "DATABASE_URL doit utiliser le driver asyncpg (ex: postgresql+asyncpg://user:pass@localhost:5432/kpil)." >&2
   exit 1
 fi
 
@@ -40,7 +40,7 @@ echo "DATABASE_URL: ${DATABASE_URL}"
 
 require() {
   if ! command -v "$1" >/dev/null 2>&1; then
-    echo "$1 est requis pour démarrer kpix." >&2
+    echo "$1 est requis pour démarrer kpil." >&2
     exit 1
   fi
 }

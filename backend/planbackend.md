@@ -1,4 +1,4 @@
-# Plan Backend – Plateforme de pilotage de performance (kpix)
+# Plan Backend – Plateforme de pilotage de performance (kpil)
 
 Objectif : concevoir un backend robuste, modulaire et prêt production pour une application web de pilotage de la performance (type ABCKPI) avec tableaux de bord, KPIs, plans d’action, collaboration et import de données, sur base PostgreSQL.
 

@@ -21,8 +21,8 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const ACCESS_TOKEN_KEY = 'kpix_access_token';
-const REFRESH_TOKEN_KEY = 'kpix_refresh_token';
+const ACCESS_TOKEN_KEY = 'kpil_access_token';
+const REFRESH_TOKEN_KEY = 'kpil_refresh_token';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(ACCESS_TOKEN_KEY));
